@@ -1006,7 +1006,7 @@ int main() {
 		printf("Normal:%d/%dCombo\n", combo, tmp.maxcombo);
 		printf("Oti:%dCombo\n", oti);
 		printf("Duration:%fSec\n", diff);
-		printf("diff=%lf\n",diff/(double)NOW,diff,(double)NOW);
+		printf("diff=%lf\n",diff/(double)NOW);
 		printf("------------\n");
 		avg += (double)combo;
 		oti_avg += (double)oti;
