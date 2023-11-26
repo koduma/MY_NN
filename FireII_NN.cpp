@@ -44,14 +44,15 @@ using namespace std;
 #define COL 6//横//MAX7
 #define DROP 6//ドロップの種類//MAX9
 #define TRN 150//手数//MAX155
-#define MAX_TURN 150//最大ルート長//MAX150
-#define BEAM_WIDTH 100//ビーム幅//MAX200000
-#define PROBLEM 10000//問題数
+#define MAX_TURN 150
+#define BEAM_WIDTH 10000
+#define PROBLEM 100000//問題数
 #define BONUS 10//評価値改善係数
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 #define NODE_SIZE MAX(500,4*BEAM_WIDTH)
 
-#define TEST 10000
+#define B 10000
+#define TEST 100
 #define INPUT ROW*COL*DROP
 #define H_PARAMS 10
 #define OUTPUT 1
@@ -215,7 +216,36 @@ double predict(double X[INPUT]){
     return Y[0];
 }
 
-void train(F_T field[ROW][COL],int score){
+vector<pair<string,int> >fields;
+
+void memo(F_T field[ROW][COL],int score){
+
+string lt="";
+for(int i=0;i<ROW*COL;i++){lt+=(int)field[i/COL][i%COL]+'0';}
+
+fields.push_back(make_pair(lt,score));
+
+}
+
+void train(){
+
+for(int mmm=0;mmm<(int)fields.size();mmm++){
+
+if(mmm%1000==0){
+
+cout<<"train="<<mmm<<"/"<<(int)fields.size()<<endl;
+
+}
+
+for(int loop=0;loop<100;loop++){
+
+
+F_T field[ROW][COL];
+
+string s=fields[mmm].first;
+int score=fields[mmm].second;
+
+for(int i=0;i<ROW*COL;i++){field[i/COL][i%COL]=s[i]-'0';}
 
 double X[INPUT];
     
@@ -262,25 +292,40 @@ memcpy(temp_Wi,Wi,sizeof(temp_Wi));
 memcpy(temp_W0,W0,sizeof(temp_W0));    
 
 for(int i=0;i<LAYER;i++){
-double r=d_rnd()*dr;
-if(d_rnd()<=0.5){Bi[i]+=r;}
-//else{Bi[i]=Bi[i]-r;}
+double r=d_rnd();
+if(r<=0.5){
+if(r<=0.25){Bi[i]+=dr;}
+else{Bi[i]-=dr;}
+}
+else{
+Bi[i]+=dr*((double)data_pl-minl);
+}
 }
 
 for(int i=0;i<H_PARAMS;i++){
 for(int j=0;j<INPUT;j++){
-double r=d_rnd()*dr;
-if(d_rnd()<=0.5){W0[i][j]+=r;}
-//else{W0[i][j]-=r;}
+double r=d_rnd();
+if(r<=0.5){
+if(r<=0.25){W0[i][j]+=dr;}
+else{W0[i][j]-=dr;}
+}
+else{
+W0[i][j]+=dr*((double)data_pl-minl);
+}
 }
 }    
 
 for(int i=0;i<LAYER;i++){
 for(int j=0;j<H_PARAMS;j++){
 for(int k=0;k<H_PARAMS;k++){
-double r=d_rnd()*dr;
-if(d_rnd()<=0.5){Wi[i][j][k]+=r;}
-//else{Wi[i][j][k]=Wi[i][j][k]-r;}
+double r=d_rnd();
+if(r<=0.5){
+if(r<=0.25){Wi[i][j][k]+=dr;}
+else{Wi[i][j][k]-=dr;}
+}
+else{
+Wi[i][j][k]+=dr*((double)data_pl-minl);
+}
 }
 }
 }
@@ -294,6 +339,10 @@ else{
 memcpy(Bi,temp_Bi,sizeof(temp_Bi));
 memcpy(Wi,temp_Wi,sizeof(temp_Wi));
 memcpy(W0,temp_W0,sizeof(temp_W0));    
+}
+
+}
+
 }
     
 }
@@ -366,7 +415,7 @@ Action BEAM_SEARCH(F_T f_field[ROW][COL]) {
 	for (int i = 0; i < MAX_TURN; i++) {
 		int ks = (int)dque.size();
 		start = omp_get_wtime();
-//#pragma omp parallel for reduction(+:NOW)
+#pragma omp parallel for
 		for (int k = 0; k < ks; k++) {
 #ifdef _OPENMP
 			if (i == 0 && k == 0) {
@@ -415,13 +464,8 @@ Action BEAM_SEARCH(F_T f_field[ROW][COL]) {
 						if(field[l/COL][l%COL]>0){X[l+(ROW*COL)*(int)(field[l/COL][l%COL]-1)]=1.0;}
 						}
 						double pred=predict(X);
-						diff+=fabs((double)(cand.score)-pred);
 						cand.score=(int)floor(pred);
 						}
-						else{
-						train(field,cand.score);
-						}
-						NOW++;
 						cand.combo = cmb;
 						//part1 += omp_get_wtime() - st;
 						cand.prev = j;
@@ -448,6 +492,7 @@ Action BEAM_SEARCH(F_T f_field[ROW][COL]) {
 		deque<int>vec[3001];
 		//printf("depth=%d/%d\n",i+1,MAX_TURN);
 		int ks2 = 0;
+		bool congrats=false;
 		for (int j = 0; j < 4 * ks; j++) {
 			if (fff[j].combo != -1) {
 			if (fff[j].combo == stop) {
@@ -455,7 +500,12 @@ Action BEAM_SEARCH(F_T f_field[ROW][COL]) {
 				bestAction.score = maxValue;
 				bestAction.first_te = fff[j].first_te;
 				memcpy(bestAction.moving, fff[j].movei, sizeof(fff[j].movei));
-				return bestAction;
+				ll BB[DROP+1];
+				F_T board[ROW][COL];
+				memcpy(board,f_field,sizeof(board));
+				operation(board, fff[j].first_te,fff[j].movei,BB);
+				memo(board,fff[j].score);
+				congrats=true;
 			}
 			if(fff[j].score>fff[j].prev_score){fff[j].improving=fff[j].improving+1;}
 			fff[j].prev_score=fff[j].score;
@@ -463,9 +513,12 @@ Action BEAM_SEARCH(F_T f_field[ROW][COL]) {
 			ks2++;
 			}
 		}
+		if(congrats){return bestAction;}
 		int push_node=0;
 		int possible_score=3000;
-		for (int j = 0; push_node < BEAM_WIDTH; j++) {
+		int BW=BEAM_WIDTH;
+		if(!is_test){BW=B;}
+		for (int j = 0; push_node < BW; j++) {
 			if(possible_score<0){break;}
 			if((int)vec[possible_score].size()==0){
 			possible_score--;
@@ -870,16 +923,46 @@ p = _pext_u64(p, rest);
 p = _pdep_u64(p, mask);
 return p;
 }
-
 void sub() {	
 	
         is_test=false;
+
+/*
+
 	for (int i = 0; i < PROBLEM; i++) {//PROBLEM問解く
 		cout<<"i="<<(i+1)<<"/"<<PROBLEM<<endl;
 		F_T f_field[ROW][COL]; //スワイプ前の盤面
 		init(f_field); set(f_field, 0);//初期盤面生成
 		Action tmp = BEAM_SEARCH(f_field);
 	}
+
+	ofstream fi("train.txt",ios::app);
+	for(int i = 0; i < (int)fields.size(); i++) {
+	string mystr=fields[i].first+','+to_string(fields[i].second)+'\n';
+	fi<<mystr;
+	}
+	fi.close();
+
+*/
+
+
+	    ifstream myf ("train.txt");
+	    string ls;
+	    while(getline(myf,ls)){
+		    string parent="";
+		    string child="";
+		    bool comma=false;
+		    for(int i=0;i<(int)ls.size();i++){
+			    if(ls[i]==','){comma=true;continue;}
+			    if(comma){child+=ls[i];}
+			    else{parent+=ls[i];}
+		    }
+		    fields.push_back(make_pair(parent,stoi(child)));
+	    }
+	myf.close();
+
+	train();
+
 }
 int main() {
 
@@ -952,7 +1035,7 @@ int main() {
 		F_T f_field[ROW][COL]; //スワイプ前の盤面
 		F_T field[ROW][COL]; //盤面
 		F_T oti_field[ROW][COL];//落ちコン用盤面
-		printf("input:No.%d/%d\n", i + 1, PROBLEM);
+		printf("input:No.%d/%d\n", i + 1, TEST);
 		init(f_field); set(f_field, 0);//初期盤面生成
 		/*
 		string str="";
@@ -1005,8 +1088,7 @@ int main() {
 		printf("path_length=%d\n",path_length);
 		printf("Normal:%d/%dCombo\n", combo, tmp.maxcombo);
 		printf("Oti:%dCombo\n", oti);
-		printf("Duration:%fSec\n", diff);
-		printf("diff=%lf\n",diff/(double)NOW);
+		printf("Duration:%fSec\n", di);
 		printf("------------\n");
 		avg += (double)combo;
 		oti_avg += (double)oti;
