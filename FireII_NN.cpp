@@ -46,7 +46,7 @@ using namespace std;
 #define TRN 150//手数//MAX155
 #define MAX_TURN 150
 #define BEAM_WIDTH 10000
-#define PROBLEM 100000//問題数
+#define PROBLEM 1000000//問題数
 #define BONUS 10//評価値改善係数
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 #define NODE_SIZE MAX(500,4*BEAM_WIDTH)
@@ -67,6 +67,7 @@ int data_pl;
 int NOW=0;
 double diff=0;
 bool is_test=false;
+bool learn=false;
 
 typedef char F_T;//盤面型
 typedef char T_T;//手数型
@@ -224,6 +225,11 @@ string lt="";
 for(int i=0;i<ROW*COL;i++){lt+=(int)field[i/COL][i%COL]+'0';}
 
 fields.push_back(make_pair(lt,score));
+
+ofstream fi("train.txt",ios::app);
+string mystr=lt+','+to_string(score)+'\n';
+fi<<mystr;
+fi.close();
 
 }
 
@@ -927,7 +933,7 @@ void sub() {
 	
         is_test=false;
 
-/*
+	if(learn){
 
 	for (int i = 0; i < PROBLEM; i++) {//PROBLEM問解く
 		cout<<"i="<<(i+1)<<"/"<<PROBLEM<<endl;
@@ -936,16 +942,9 @@ void sub() {
 		Action tmp = BEAM_SEARCH(f_field);
 	}
 
-	ofstream fi("train.txt",ios::app);
-	for(int i = 0; i < (int)fields.size(); i++) {
-	string mystr=fields[i].first+','+to_string(fields[i].second)+'\n';
-	fi<<mystr;
 	}
-	fi.close();
-
-*/
-
-
+	else{
+		
 	    ifstream myf ("train.txt");
 	    string ls;
 	    while(getline(myf,ls)){
@@ -963,8 +962,16 @@ void sub() {
 
 	train();
 
+	}
+
 }
 int main() {
+
+	string sss="";
+	printf("learn?(y/n)=");
+	cin>>sss;
+	if(sss=="y"){learn=true;}
+	else{learn=false;}
 
 	int i, j, k;
 	for(i=0;i<ROW;++i){
