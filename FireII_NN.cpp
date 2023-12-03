@@ -57,7 +57,7 @@ using namespace std;
 #define H_PARAMS 10
 #define OUTPUT 1
 #define LAYER 3
-#define dr 0.0000001//学習率(0.0000001が良好)
+#define dr 0.01//学習率(0.0000001が良好)
     
 double Bi[LAYER];
 double Wi[LAYER][H_PARAMS][H_PARAMS];
@@ -235,15 +235,27 @@ fi.close();
 
 void train(){
 
-for(int mmm=0;mmm<(int)fields.size();mmm++){
+double sum;
+
+double minl;
+
+sum=0;
+
+int lim=(int)fields.size();
+
+lim=200000;
+
+for(int mmm=0;mmm<lim;mmm++){
+
 
 if(mmm%1000==0){
 
-cout<<"train="<<mmm<<"/"<<(int)fields.size()<<endl;
+cout<<"train="<<mmm<<"/"<<lim<<endl;
+printf("loss=%lf\n",sum/(double)(mmm+1.0));
 
 }
 
-for(int loop=0;loop<100;loop++){
+for(int loop=0;loop<1000;loop++){
 
 
 F_T field[ROW][COL];
@@ -255,13 +267,11 @@ for(int i=0;i<ROW*COL;i++){field[i/COL][i%COL]=s[i]-'0';}
 
 double X[INPUT];
     
-double temp_Bi[LAYER];
+double temp_Bi[LAYER]={0};
 
-double temp_Wi[LAYER][H_PARAMS][H_PARAMS];
+double temp_Wi[LAYER][H_PARAMS][H_PARAMS]={0};
 
-double temp_W0[H_PARAMS][INPUT];    
-    
-double minl;
+double temp_W0[H_PARAMS][INPUT]={0};    
 
 	int p_maxcombo[DROP+1] = {0};
 
@@ -299,25 +309,15 @@ memcpy(temp_W0,W0,sizeof(temp_W0));
 
 for(int i=0;i<LAYER;i++){
 double r=d_rnd();
-if(r<=0.5){
-if(r<=0.25){Bi[i]+=dr;}
+if(r<=0.5){Bi[i]+=dr;}
 else{Bi[i]-=dr;}
-}
-else{
-Bi[i]+=dr*((double)data_pl-minl);
-}
 }
 
 for(int i=0;i<H_PARAMS;i++){
 for(int j=0;j<INPUT;j++){
 double r=d_rnd();
-if(r<=0.5){
-if(r<=0.25){W0[i][j]+=dr;}
+if(r<=0.5){W0[i][j]+=dr;}
 else{W0[i][j]-=dr;}
-}
-else{
-W0[i][j]+=dr*((double)data_pl-minl);
-}
 }
 }    
 
@@ -325,21 +325,19 @@ for(int i=0;i<LAYER;i++){
 for(int j=0;j<H_PARAMS;j++){
 for(int k=0;k<H_PARAMS;k++){
 double r=d_rnd();
-if(r<=0.5){
-if(r<=0.25){Wi[i][j][k]+=dr;}
+if(r<=0.5){Wi[i][j][k]+=dr;}
 else{Wi[i][j][k]-=dr;}
-}
-else{
-Wi[i][j][k]+=dr*((double)data_pl-minl);
-}
 }
 }
 }
     
 double l=loss(X);    
+
+//if(loop==0){printf("mmm=%d/%d,loop=%d,minl=%lf\n",mmm,(int)fields.size(),loop,minl);}
     
 if(minl>l){
 minl=l;
+//printf("mmm=%d/%d,loop=%d,minl=%lf\n",mmm,(int)fields.size(),loop,minl);
 }
 else{
 memcpy(Bi,temp_Bi,sizeof(temp_Bi));
@@ -348,6 +346,8 @@ memcpy(W0,temp_W0,sizeof(temp_W0));
 }
 
 }
+
+sum+=minl;
 
 }
     
@@ -470,7 +470,7 @@ Action BEAM_SEARCH(F_T f_field[ROW][COL]) {
 						if(field[l/COL][l%COL]>0){X[l+(ROW*COL)*(int)(field[l/COL][l%COL]-1)]=1.0;}
 						}
 						double pred=predict(X);
-						cand.score=(int)floor(pred);
+						cand.score=min(1000,max(0,(int)floor(pred)));
 						}
 						cand.combo = cmb;
 						//part1 += omp_get_wtime() - st;
