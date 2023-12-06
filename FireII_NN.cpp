@@ -54,14 +54,16 @@ using namespace std;
 #define B 10000
 #define TEST 100
 #define INPUT ROW*COL*DROP
-#define H_PARAMS 10
+#define H_PARAMS 15
 #define OUTPUT 1
-#define LAYER 3
-#define dr 0.01//学習率(0.0000001が良好)
+#define LAYER 4
+#define dr 0.0001//学習率(0.0000001が良好)
     
-double Bi[LAYER];
+double Bi[LAYER][H_PARAMS];
 double Wi[LAYER][H_PARAMS][H_PARAMS];
-double W0[H_PARAMS][INPUT];
+double Wn[H_PARAMS][OUTPUT];
+double W0[INPUT][H_PARAMS];
+
 int data_field[INPUT];
 int data_pl;
 int NOW=0;
@@ -146,7 +148,8 @@ double acc(double Y[OUTPUT]){//他クラス値分類
 }
 
 double activ(double x){//活性化関数
-    return max(0.0,x);
+    //return max(0.0,x);
+	return x;
 }
 
 double d_rnd() {
@@ -157,13 +160,12 @@ double d_rnd() {
 
 void LAYER1(double X[INPUT],double Y[H_PARAMS]){
 
-        for(int j=0;j<H_PARAMS;j++){
-        for(int i=0;i<INPUT;i++){
-        if(i==0){Y[j]=Bi[0];}
-        Y[j]+=X[i]*W0[j][i];
+        for(int j=0;j<INPUT;j++){
+        for(int i=0;i<H_PARAMS;i++){
+        Y[i]+=(X[j]*W0[j][i])+Bi[0][i];
         }
-        Y[j]=activ(Y[j]);
         }
+	for(int i=0;i<H_PARAMS;i++){Y[i]=activ(Y[i]);}
     
 }
 
@@ -171,11 +173,10 @@ void LAYER2(double X[H_PARAMS],double Y[H_PARAMS],int type){
        
         for(int j=0;j<H_PARAMS;j++){
         for(int i=0;i<H_PARAMS;i++){
-        if(i==0){Y[j]=Bi[type];}
-        Y[j]+=X[i]*Wi[type][j][i];
+        Y[i]+=(X[j]*Wi[type][j][i])+Bi[type][i];
         }
-        Y[j]=activ(Y[j]);
         }
+	for(int i=0;i<H_PARAMS;i++){Y[i]=activ(Y[i]);}
     
 }
 
@@ -183,10 +184,8 @@ void LAYER3(double X[H_PARAMS],double Y[OUTPUT]){
       
         for(int j=0;j<OUTPUT;j++){
         for(int i=0;i<H_PARAMS;i++){ 
-        if(i==0){Y[j]=Bi[LAYER-1];}
-        Y[j]+=X[i]*Wi[LAYER-1][j][i];
+        Y[j]+=X[i]*Wn[i][j]+Bi[LAYER-1][j];
         }
-        Y[j]=activ(Y[j]);
         }
     
 }
@@ -235,27 +234,28 @@ fi.close();
 
 void train(){
 
-double sum;
-
 double minl;
 
-sum=0;
+double sum=0;
 
 int lim=(int)fields.size();
 
-lim=200000;
+lim=100000;
 
 for(int mmm=0;mmm<lim;mmm++){
-
 
 if(mmm%1000==0){
 
 cout<<"train="<<mmm<<"/"<<lim<<endl;
-printf("loss=%lf\n",sum/(double)(mmm+1.0));
+printf("loss=%lf\n",sum/(double)(mmm+1));
 
 }
 
-for(int loop=0;loop<1000;loop++){
+int iter=0;
+
+while(1){
+
+iter++;
 
 
 F_T field[ROW][COL];
@@ -267,11 +267,10 @@ for(int i=0;i<ROW*COL;i++){field[i/COL][i%COL]=s[i]-'0';}
 
 double X[INPUT];
     
-double temp_Bi[LAYER]={0};
-
+double temp_Bi[LAYER][H_PARAMS]={0};
 double temp_Wi[LAYER][H_PARAMS][H_PARAMS]={0};
-
-double temp_W0[H_PARAMS][INPUT]={0};    
+double temp_Wn[H_PARAMS][OUTPUT]={0};
+double temp_W0[INPUT][H_PARAMS]={0};    
 
 	int p_maxcombo[DROP+1] = {0};
 
@@ -305,21 +304,41 @@ minl=loss(X);
     
 memcpy(temp_Bi,Bi,sizeof(temp_Bi));
 memcpy(temp_Wi,Wi,sizeof(temp_Wi));
-memcpy(temp_W0,W0,sizeof(temp_W0));    
+memcpy(temp_W0,W0,sizeof(temp_W0));
+
+/*
+double Bi[LAYER][H_PARAMS];
+double Wi[LAYER][H_PARAMS][H_PARAMS];
+double Wn[H_PARAMS][OUTPUT];
+double W0[INPUT][H_PARAMS];
+
+*/
+
+for(int loop=0;loop<2;loop++){    
 
 for(int i=0;i<LAYER;i++){
+for(int j=0;j<H_PARAMS;j++){
 double r=d_rnd();
-if(r<=0.5){Bi[i]+=dr;}
-else{Bi[i]-=dr;}
+if(r<=0.5){Bi[i][j]+=dr;}
+else{Bi[i][j]-=dr;}
+}
 }
 
 for(int i=0;i<H_PARAMS;i++){
 for(int j=0;j<INPUT;j++){
 double r=d_rnd();
-if(r<=0.5){W0[i][j]+=dr;}
-else{W0[i][j]-=dr;}
+if(r<=0.5){W0[j][i]+=dr;}
+else{W0[j][i]-=dr;}
 }
-}    
+}
+
+for(int i=0;i<H_PARAMS;i++){
+for(int j=0;j<OUTPUT;j++){
+double r=d_rnd();
+if(r<=0.5){Wn[i][j]+=dr;}
+else{Wn[i][j]-=dr;}
+}
+}
 
 for(int i=0;i<LAYER;i++){
 for(int j=0;j<H_PARAMS;j++){
@@ -330,20 +349,22 @@ else{Wi[i][j][k]-=dr;}
 }
 }
 }
+
+}
     
 double l=loss(X);    
-
-//if(loop==0){printf("mmm=%d/%d,loop=%d,minl=%lf\n",mmm,(int)fields.size(),loop,minl);}
     
-if(minl>l){
+if(minl>l||(iter>=1000&&fabs(minl-l)<=5.0)){
 minl=l;
-//printf("mmm=%d/%d,loop=%d,minl=%lf\n",mmm,(int)fields.size(),loop,minl);
+printf("train=%d/%d,loss=%lf\n",mmm,lim,minl);
 }
 else{
 memcpy(Bi,temp_Bi,sizeof(temp_Bi));
 memcpy(Wi,temp_Wi,sizeof(temp_Wi));
 memcpy(W0,temp_W0,sizeof(temp_W0));    
 }
+
+if(minl<1.0||(iter>=1000&&minl<=1.0)){break;}
 
 }
 
@@ -470,7 +491,9 @@ Action BEAM_SEARCH(F_T f_field[ROW][COL]) {
 						if(field[l/COL][l%COL]>0){X[l+(ROW*COL)*(int)(field[l/COL][l%COL]-1)]=1.0;}
 						}
 						double pred=predict(X);
-						cand.score=min(1000,max(0,(int)floor(pred)));
+						pred=fabs(pred);
+						if(pred>150.0){cand.score=0;}
+						else{cand.score=-(int)floor(pred)+500;}
 						}
 						cand.combo = cmb;
 						//part1 += omp_get_wtime() - st;
@@ -509,8 +532,6 @@ Action BEAM_SEARCH(F_T f_field[ROW][COL]) {
 				ll BB[DROP+1];
 				F_T board[ROW][COL];
 				memcpy(board,f_field,sizeof(board));
-				operation(board, fff[j].first_te,fff[j].movei,BB);
-				memo(board,fff[j].score);
 				congrats=true;
 			}
 			if(fff[j].score>fff[j].prev_score){fff[j].improving=fff[j].improving+1;}
@@ -535,8 +556,8 @@ Action BEAM_SEARCH(F_T f_field[ROW][COL]) {
 			//swap(vec[possible_score][0], vec[possible_score].back());
 			//vec[possible_score].pop_back();
 			vec[possible_score].pop_front();
-			if (maxValue < temp.combo) {//コンボ数が増えたらその手を記憶する
-				maxValue = temp.combo;
+			if (maxValue < temp.score) {//コンボ数が増えたらその手を記憶する
+				maxValue = temp.score;
 				bestAction.score = maxValue;
 				bestAction.first_te = temp.first_te;
 				memcpy(bestAction.moving, temp.movei, sizeof(temp.movei));
@@ -933,13 +954,46 @@ void sub() {
 	
         is_test=false;
 
-	if(learn){
+	if(!learn){
 
 	for (int i = 0; i < PROBLEM; i++) {//PROBLEM問解く
 		cout<<"i="<<(i+1)<<"/"<<PROBLEM<<endl;
 		F_T f_field[ROW][COL]; //スワイプ前の盤面
 		init(f_field); set(f_field, 0);//初期盤面生成
 		Action tmp = BEAM_SEARCH(f_field);
+		string route="";
+		route+=to_string(XX(tmp.first_te))+to_string(YY(tmp.first_te)+5)+",";
+		for (int j = 0; j <= TRN/21; j++) {//y座標は下にいくほど大きくなる
+			if (tmp.moving[j] == 0ll) { break; }
+			for(int k=0;k<21;k++){
+			int dir = (int)(7ll&(tmp.moving[j]>>(3*k)));
+			if (dir==0){break;}
+			if (dir==1) { route+=to_string(3);}//printf("L"); } //"LEFT"); }
+			if (dir==2) { route+=to_string(6);}//printf("U"); } //"UP"); }
+			if (dir==3) { route+=to_string(1);}//printf("D"); } //"DOWN"); }
+			if (dir==4) { route+=to_string(4);}//printf("R"); } //"RIGHT"); }
+			}
+		}
+		int tgt=0;
+		string top="";
+		while(1){
+		if(route[tgt]==','){tgt++;break;}
+		top+=route[tgt];
+		tgt++;
+		}
+		int pos;
+		if((int)top.size()==2){int x=top[0]-'0';int y=(top[1]-'0')-5;pos=(y*COL)+x;}
+		else{int x=top[0]-'0';int y=5;pos=(y*COL)+x;}
+		int tesuu=(int)route.size()-tgt;
+		int cnt=0;
+		for(int j=tgt;j<(int)route.size();j++){
+		memo(f_field,tesuu-cnt);
+		cnt++;
+		if(route[j]=='3'){swap(f_field[pos/COL][pos%COL],f_field[pos/COL][(pos%COL)-1]);pos--;}
+		if(route[j]=='6'){swap(f_field[pos/COL][pos%COL],f_field[(pos/COL)-1][pos%COL]);pos-=COL;}
+		if(route[j]=='1'){swap(f_field[pos/COL][pos%COL],f_field[(pos/COL)+1][pos%COL]);pos+=COL;}
+		if(route[j]=='4'){swap(f_field[pos/COL][pos%COL],f_field[pos/COL][(pos%COL)+1]);pos++;}
+		}
 	}
 
 	}
@@ -968,7 +1022,7 @@ void sub() {
 int main() {
 
 	string sss="";
-	printf("learn?(y/n)=");
+	printf("train?(y/n)=");
 	cin>>sss;
 	if(sss=="y"){learn=true;}
 	else{learn=false;}
@@ -1008,24 +1062,35 @@ int main() {
 	po-=8;
 	}
 
-	for(i=0;i<LAYER;i++){
-        double r=d_rnd();
-        Bi[i]=r;
-    	}
-	for(i=0;i<H_PARAMS;i++){
-    	for(j=0;j<INPUT;j++){
-        double r=d_rnd();
-        W0[i][j]=r;
-    	}
-    	}  
-    	for(i=0;i<LAYER;i++){
-    	for(j=0;j<H_PARAMS;j++){
-    	for(k=0;k<H_PARAMS;k++){
-    	double r=d_rnd();
-    	Wi[i][j][k]=r;
-    	}
-    	}
-    	}
+	for(int i=0;i<LAYER;i++){
+	for(int j=0;j<H_PARAMS;j++){
+	double r=d_rnd();
+	Bi[i][j]=r;
+	}
+	}
+
+	for(int i=0;i<H_PARAMS;i++){
+	for(int j=0;j<INPUT;j++){
+	double r=d_rnd();
+	W0[j][i]=r;
+	}
+	}
+
+	for(int i=0;i<H_PARAMS;i++){
+	for(int j=0;j<OUTPUT;j++){
+	double r=d_rnd();
+	Wn[i][j]=r;
+	}
+	}
+
+	for(int i=0;i<LAYER;i++){
+	for(int j=0;j<H_PARAMS;j++){
+	for(int k=0;k<H_PARAMS;k++){
+	double r=d_rnd();
+	Wi[i][j][k]=r;
+	}
+	}
+	}
 	
 	sub();
 
@@ -1044,15 +1109,15 @@ int main() {
 		F_T oti_field[ROW][COL];//落ちコン用盤面
 		printf("input:No.%d/%d\n", i + 1, TEST);
 		init(f_field); set(f_field, 0);//初期盤面生成
-		/*
 		string str="";
-		cin>>str;
+		str=fields[i].first;
+		//cin>>str;
 		for (j = 0; j < ROW; j++) {
 			for (k = 0; k < COL; k++) {
-				f_field[j][k] = (str[k+(COL*j)] - '0')+1;
+				f_field[j][k] = (str[k+(COL*j)] - '0');
 			}
 		}
-		*/
+		//for(j=0;j<10000;j++){swap(f_field[rnd(0,ROW-1)][rnd(0,COL-1)],f_field[rnd(0,ROW-1)][rnd(0,COL-1)]);}
 		show_field(f_field);//盤面表示
 		start = omp_get_wtime();
 		Action tmp = BEAM_SEARCH(f_field);//ビームサーチしてtmpに最善手を保存
