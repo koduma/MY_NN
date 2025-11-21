@@ -101,6 +101,7 @@ ll calc_mask(ll bitboard);
 ll fallBB(ll p,ll rest,ll mask);
 
 unordered_map<string,int>weight[3];
+int biasx[3][H_PARAMS];
 
 int MSB64bit(ll v) {
    if(v == 0ll){return 0;}
@@ -161,36 +162,36 @@ double d_rnd() {
 	return dice(mt);
 }
 
-void LAYER1(int X[INPUT],int Y[H_PARAMS]){
-
-        for(int j=0;j<INPUT;j++){
-        for(int i=0;i<H_PARAMS;i++){
-        Y[i]+=weight[0][to_string(j)+","+to_string(X[j])+","+to_string(i)];
+void LAYER1(int X[INPUT], int Y[H_PARAMS]) {
+    for (int i = 0; i < H_PARAMS; i++) {
+        Y[i] = 0;
+        for (int j = 0; j < INPUT; j++) {
+            Y[i] += weight[0][to_string(j) + "," + to_string(X[j]) + "," + to_string(i)];
         }
-        }
-	for(int i=0;i<H_PARAMS;i++){Y[i]=activ(Y[i]);}
-    
+        Y[i] += biasx[0][i];
+        Y[i] = activ(Y[i]);
+    }
 }
 
-void LAYER2(int X[H_PARAMS],int Y[H_PARAMS],int type){
-       
-        for(int j=0;j<H_PARAMS;j++){
-        for(int i=0;i<H_PARAMS;i++){
-	Y[i]+=weight[type][to_string(j)+","+to_string(i)]*X[j];
+void LAYER2(int X[H_PARAMS], int Y[H_PARAMS], int type) {
+    for (int i = 0; i < H_PARAMS; i++) {
+        Y[i] = 0;
+        for (int j = 0; j < H_PARAMS; j++) {
+            Y[i] += weight[type][to_string(j) + "," + to_string(i)] * X[j];
         }
-        }
-	for(int i=0;i<H_PARAMS;i++){Y[i]=activ(Y[i]);}
-    
+        Y[i] += biasx[type][i];
+        Y[i] = activ(Y[i]);
+    }
 }
 
-void LAYER3(int X[H_PARAMS],int Y[OUTPUT]){
-      
-        for(int j=0;j<OUTPUT;j++){
-        for(int i=0;i<H_PARAMS;i++){ 
-        Y[j]+=weight[2][to_string(j)+","+to_string(i)]*X[j];
+void LAYER3(int X[H_PARAMS], int Y[OUTPUT]) {
+    for (int i = 0; i < OUTPUT; i++) {
+        Y[i] = 0;
+        for (int j = 0; j < H_PARAMS; j++) {
+            Y[i] += weight[2][to_string(i) + "," + to_string(j)] * X[j];
         }
-        }
-    
+        Y[i] += biasx[2][i];
+    }
 }
 
 int loss(int X[INPUT]){
@@ -271,7 +272,8 @@ for(int i=0;i<ROW*COL;i++){field[i/COL][i%COL]=s[i]-'0';}
 int X[INPUT];
 
 unordered_map<string,int>temp_weight[3];
-
+int temp_biasx[3][H_PARAMS];
+	
 	int p_maxcombo[DROP+1] = {0};
 
 	int drop[DROP + 1] = { 0 };
@@ -300,6 +302,12 @@ minl=loss(X);
     
 for(int mi=0;mi<3;mi++){
 temp_weight[mi]=weight[mi];
+}
+
+for(int mi=0;mi<3;mi++){
+for(int ki=0;ki<H_PARAMS;ki++){
+temp_biasx[mi][ki]=bias[mi][ki];
+}
 }
 
 int ddr=1;
@@ -332,6 +340,14 @@ if(r<=0.5){weight[2][ky]+=rnd(0,ddr);}
 else{weight[2][ky]-=rnd(0,ddr);}
 }
 }
+
+for(int j=0;j<3;j++){
+for(int i=0;i<H_PARAMS;i++){
+double r=d_rnd();
+if(r<=0.5){biasx[j][i]+=rnd(0,ddr);}
+else{biasx[j][i]-=rnd(0,ddr);}
+}
+}
     
 int l=loss(X);
 
@@ -348,7 +364,12 @@ else{
 if(iter%100==0){printf("train=%d/%d,minloss=%d/%d\n",mmm,lim,minl,l);}
 for(int mi=0;mi<3;mi++){
 weight[mi]=temp_weight[mi];
-}    
+}
+for(int mi=0;mi<3;mi++){
+for(int ki=0;ki<H_PARAMS;ki++){
+biasx[mi][ki]=temp_biasx[mi][ki];
+}
+}
 }
 
 }
@@ -1017,9 +1038,15 @@ weight[2][ky]=rnd(1,100);
 }
 }
 
-	train();
+for(int j=0;j<3;j++){
+for(int i=0;i<H_PARAMS;i++){
+biasx[j][i]=rnd(1,100);
+}
+}
 
-	}
+train();
+
+}
 
 }
 int main() {
@@ -1145,3 +1172,4 @@ int main() {
 	j = getchar();
 	return 0;
 }
+
