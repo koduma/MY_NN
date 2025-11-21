@@ -1,6 +1,6 @@
-﻿/*
+/*
 
-g++ -O2 -std=c++11 -fopenmp -mbmi2 Fire_NN.cpp -o NN
+g++ -O2 -std=c++11 -fopenmp -mbmi2 FireII_NN.cpp -o NN
 
 */
 #pragma warning(disable:4710)
@@ -51,13 +51,13 @@ using namespace std;
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 #define NODE_SIZE MAX(500,4*BEAM_WIDTH)
 
-#define B 10000
+#define B 100
 #define TEST 100
 #define INPUT ROW*COL
-#define H_PARAMS 200
+#define H_PARAMS 40
 #define OUTPUT 1
 #define LAYER 3
-#define dr 0.0001//学習率(0.0000001が良好)
+#define BATCH 1000
 
 int data_field[INPUT];
 int data_pl;
@@ -243,11 +243,11 @@ int sum=0;
 
 int lim=(int)fields.size();
 
-lim=100000;
+lim=BATCH;
 
 for(int mmm=0;mmm<lim;mmm++){
 
-if(mmm%1000==0){
+if(mmm%10==0){
 
 cout<<"train="<<mmm<<"/"<<lim<<endl;
 printf("loss=%lf\n",(double)sum/(double)(mmm+1));
@@ -302,7 +302,7 @@ for(int mi=0;mi<3;mi++){
 temp_weight[mi]=weight[mi];
 }
 
-int ddr=3;
+int ddr=1;
 
 for(int ie=0;ie<ROW*COL;ie++){
 for(int i=1;i<=DROP;i++){
@@ -338,14 +338,14 @@ int l=loss(X);
 minl=max(minl,-minl);
 l=max(l,-l);
 
-if(minl<500000){break;}    
+if(minl<1000000){break;}    
     
 if(minl>l){
 minl=l;
 printf("train=%d/%d,minloss=%d\n",mmm,lim,minl);
 }
 else{
-printf("train=%d/%d,minloss=%d/%d\n",mmm,lim,minl,l);
+if(iter%100==0){printf("train=%d/%d,minloss=%d/%d\n",mmm,lim,minl,l);}
 for(int mi=0;mi<3;mi++){
 weight[mi]=temp_weight[mi];
 }    
@@ -989,7 +989,7 @@ void sub() {
 		    }
 		    fields.push_back(make_pair(parent,stoi(child)));
 			ctv++;
-			if(ctv>=10000){break;}
+			if(ctv>=BATCH){break;}
 	    }
 	myf.close();
 
