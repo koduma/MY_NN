@@ -497,7 +497,7 @@ Action BEAM_SEARCH(F_T f_field[ROW][COL]) {
 						X[l]=(int)field[l/COL][l%COL];
 						}
 						int pred=predict(X);
-						cand.score=pred;
+						cand.score=-pred;
 						}
 						cand.combo = cmb;
 						//part1 += omp_get_wtime() - st;
@@ -1172,5 +1172,6 @@ int main() {
 	j = getchar();
 	return 0;
 }
+
 
 
