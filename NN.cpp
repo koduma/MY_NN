@@ -306,7 +306,7 @@ temp_weight[mi]=weight[mi];
 
 for(int mi=0;mi<3;mi++){
 for(int ki=0;ki<H_PARAMS;ki++){
-temp_biasx[mi][ki]=bias[mi][ki];
+temp_biasx[mi][ki]=biasx[mi][ki];
 }
 }
 
@@ -1172,4 +1172,5 @@ int main() {
 	j = getchar();
 	return 0;
 }
+
 
