@@ -45,7 +45,7 @@ using namespace std;
 #define DROP 6//ドロップの種類//MAX9
 #define TRN 150//手数//MAX155
 #define MAX_TURN 150
-#define BEAM_WIDTH 10000
+#define BEAM_WIDTH 100
 #define PROBLEM 1000000//問題数
 #define BONUS 10//評価値改善係数
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
@@ -54,10 +54,11 @@ using namespace std;
 #define B 100
 #define TEST 100
 #define INPUT ROW*COL
-#define H_PARAMS 40
+#define H_PARAMS 128
 #define OUTPUT 1
 #define LAYER 3
-#define BATCH 1000
+#define BATCH 18900000
+#define diffw 500000
 
 int data_field[INPUT];
 int data_pl;
@@ -355,7 +356,7 @@ int l=loss(X);
 minl=max(minl,-minl);
 l=max(l,-l);
 
-if(minl<1000000){break;}    
+if(minl<diffw){break;}    
     
 if(minl>l){
 minl=l;
@@ -1108,14 +1109,14 @@ int main() {
 		F_T oti_field[ROW][COL];//落ちコン用盤面
 		printf("input:No.%d/%d\n", i + 1, TEST);
 		init(f_field); set(f_field, 0);//初期盤面生成
-		string str="";
-		str=fields[i].first;
+		//string str="";
+		//str=fields[i].first;
 		//cin>>str;
-		for (j = 0; j < ROW; j++) {
-			for (k = 0; k < COL; k++) {
-				f_field[j][k] = (str[k+(COL*j)] - '0');
-			}
-		}
+		//for (j = 0; j < ROW; j++) {
+			//for (k = 0; k < COL; k++) {
+				//f_field[j][k] = (str[k+(COL*j)] - '0');
+			//}
+		//}
 		//for(j=0;j<10000;j++){swap(f_field[rnd(0,ROW-1)][rnd(0,COL-1)],f_field[rnd(0,ROW-1)][rnd(0,COL-1)]);}
 		show_field(f_field);//盤面表示
 		start = omp_get_wtime();
@@ -1171,3 +1172,5 @@ int main() {
 	j = getchar();
 	return 0;
 }
+
+
