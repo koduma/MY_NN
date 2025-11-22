@@ -100,7 +100,9 @@ ll file_bb[COL];
 ll calc_mask(ll bitboard);
 ll fallBB(ll p,ll rest,ll mask);
 
-unordered_map<string,int>weight[3];
+int weight1[INPUT][DROP+1][H_PARAMS];
+int weight2[H_PARAMS][H_PARAMS];
+int weight3[OUTPUT][H_PARAMS];
 int biasx[3][H_PARAMS];
 
 int MSB64bit(ll v) {
@@ -166,7 +168,7 @@ void LAYER1(int X[INPUT], int Y[H_PARAMS]) {
     for (int i = 0; i < H_PARAMS; i++) {
         Y[i] = 0;
         for (int j = 0; j < INPUT; j++) {
-            Y[i] += weight[0][to_string(j) + "," + to_string(X[j]) + "," + to_string(i)];
+            Y[i] += weight1[j][X[j]][i];
         }
         Y[i] += biasx[0][i];
         Y[i] = activ(Y[i]);
@@ -177,7 +179,7 @@ void LAYER2(int X[H_PARAMS], int Y[H_PARAMS], int type) {
     for (int i = 0; i < H_PARAMS; i++) {
         Y[i] = 0;
         for (int j = 0; j < H_PARAMS; j++) {
-            Y[i] += weight[type][to_string(j) + "," + to_string(i)] * X[j];
+            Y[i] += weight2[j][i] * X[j];
         }
         Y[i] += biasx[type][i];
         Y[i] = activ(Y[i]);
@@ -188,7 +190,7 @@ void LAYER3(int X[H_PARAMS], int Y[OUTPUT]) {
     for (int i = 0; i < OUTPUT; i++) {
         Y[i] = 0;
         for (int j = 0; j < H_PARAMS; j++) {
-            Y[i] += weight[2][to_string(i) + "," + to_string(j)] * X[j];
+            Y[i] += weight3[i][j] * X[j];
         }
         Y[i] += biasx[2][i];
     }
@@ -271,7 +273,9 @@ for(int i=0;i<ROW*COL;i++){field[i/COL][i%COL]=s[i]-'0';}
 
 int X[INPUT];
 
-unordered_map<string,int>temp_weight[3];
+int temp_weight1[INPUT][DROP+1][H_PARAMS];
+int temp_weight2[H_PARAMS][H_PARAMS];
+int temp_weight3[OUTPUT][H_PARAMS];
 int temp_biasx[3][H_PARAMS];
 	
 	int p_maxcombo[DROP+1] = {0};
@@ -300,9 +304,9 @@ X[i]=data_field[i];
 
 minl=loss(X);
     
-for(int mi=0;mi<3;mi++){
-temp_weight[mi]=weight[mi];
-}
+memcpy(temp_weight1,weight1,sizeof(temp_weight1));
+memcpy(temp_weight2,weight2,sizeof(temp_weight2));
+memcpy(temp_weight3,weight3,sizeof(temp_weight3));
 
 for(int mi=0;mi<3;mi++){
 for(int ki=0;ki<H_PARAMS;ki++){
@@ -316,9 +320,8 @@ for(int ie=0;ie<ROW*COL;ie++){
 for(int i=1;i<=DROP;i++){
 for(int j=0;j<H_PARAMS;j++){
 double r=d_rnd();
-string ky=to_string(ie)+","+to_string(i)+","+to_string(j);
-if(r<=0.5){weight[0][ky]+=rnd(0,ddr);}
-else{weight[0][ky]-=rnd(0,ddr);}
+if(r<=0.5){weight1[ie][i][j]+=rnd(0,ddr);}
+else{weight1[ie][i][j]-=rnd(0,ddr);}
 }
 }
 }
@@ -326,18 +329,16 @@ else{weight[0][ky]-=rnd(0,ddr);}
 for(int i=0;i<H_PARAMS;i++){
 for(int j=0;j<H_PARAMS;j++){
 double r=d_rnd();
-string ky=to_string(i)+","+to_string(j);
-if(r<=0.5){weight[1][ky]+=rnd(0,ddr);}
-else{weight[1][ky]-=rnd(0,ddr);}
+if(r<=0.5){weight2[i][j]+=rnd(0,ddr);}
+else{weight2[i][j]-=rnd(0,ddr);}
 }
 }
 
 for(int j=0;j<OUTPUT;j++){
 for(int i=0;i<H_PARAMS;i++){
 double r=d_rnd();
-string ky=to_string(j)+","+to_string(i);
-if(r<=0.5){weight[2][ky]+=rnd(0,ddr);}
-else{weight[2][ky]-=rnd(0,ddr);}
+if(r<=0.5){weight3[j][i]+=rnd(0,ddr);}
+else{weight3[j][i]-=rnd(0,ddr);}
 }
 }
 
@@ -362,9 +363,9 @@ printf("train=%d/%d,minloss=%d\n",mmm,lim,minl);
 }
 else{
 if(iter%100==0){printf("train=%d/%d,minloss=%d/%d\n",mmm,lim,minl,l);}
-for(int mi=0;mi<3;mi++){
-weight[mi]=temp_weight[mi];
-}
+memcpy(weight1,temp_weight1,sizeof(temp_weight1));
+memcpy(weight2,temp_weight2,sizeof(temp_weight2));
+memcpy(weight3,temp_weight3,sizeof(temp_weight3));
 for(int mi=0;mi<3;mi++){
 for(int ki=0;ki<H_PARAMS;ki++){
 biasx[mi][ki]=temp_biasx[mi][ki];
@@ -1018,8 +1019,7 @@ void sub() {
 for(int ie=0;ie<ROW*COL;ie++){
 for(int i=1;i<=DROP;i++){
 for(int j=0;j<H_PARAMS;j++){
-string ky=to_string(ie)+","+to_string(i)+","+to_string(j);
-weight[0][ky]=rnd(1,100);
+weight1[ie][i][j]=rnd(1,100);
 }
 }
 }
@@ -1027,14 +1027,13 @@ weight[0][ky]=rnd(1,100);
 for(int i=0;i<H_PARAMS;i++){
 for(int j=0;j<H_PARAMS;j++){
 string ky=to_string(i)+","+to_string(j);
-weight[1][ky]=rnd(1,100);
+weight2[i][j]=rnd(1,100);
 }
 }
 
 for(int j=0;j<OUTPUT;j++){
 for(int i=0;i<H_PARAMS;i++){
-string ky=to_string(j)+","+to_string(i);
-weight[2][ky]=rnd(1,100);
+weight3[j][i]=rnd(1,100);
 }
 }
 
@@ -1172,6 +1171,3 @@ int main() {
 	j = getchar();
 	return 0;
 }
-
-
-
