@@ -1,5 +1,5 @@
 /*
- g++ -O2 -std=c++11 -fopenmp -mbmi2 yyy.cpp -o ML
+ g++ -O2 -std=c++11 -fopenmp -mbmi2 xxx.cpp -o ML
  */
 #pragma warning(disable:4710)
 #pragma warning(disable:4711)
