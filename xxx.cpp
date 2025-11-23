@@ -595,8 +595,45 @@ void sub() {
             printf("Test No.%d/%d\n", i + 1, TEST);
             init(f_field); set(f_field, 0);
             show_field(f_field);
-            Action res = BEAM_SEARCH_NN(f_field);
-            printf("NN Score: %d\n----------------\n", res.score);
+            Action tmp = BEAM_SEARCH_NN(f_field);
+            printf("NN Score: %d\n----------------\n", tmp.score);
+            string layout="";
+            for(int v=0;v<ROW;v++){
+            for(int u=0;u<COL;u++){
+            layout+=to_string(f_field[v][u]-1);
+            }
+            }
+            string route="";
+            int path_length=0;
+            route+=to_string(XX(tmp.first_te))+to_string(YY(tmp.first_te)+5)+",";
+            for (int j = 0; j <= TRN/21; j++) {//y座標は下にいくほど大きくなる
+            if (tmp.moving[j] == 0ll) { break; }
+            for(int k=0;k<21;k++){
+            int dir = (int)(7ll&(tmp.moving[j]>>(3*k)));
+            if (dir==0){break;}
+            if (dir==1) { route+=to_string(3);}//printf("L"); } //"LEFT"); }
+            if (dir==2) { route+=to_string(6);}//printf("U"); } //"UP"); }
+            if (dir==3) { route+=to_string(1);}//printf("D"); } //"DOWN"); }
+            if (dir==4) { route+=to_string(4);}//printf("R"); } //"RIGHT"); }
+            path_length++;
+            }
+            }
+            string url="http://serizawa.web5.jp/puzzdra_theory_maker/index.html?layout="+layout+"&route="+route+"&ctwMode=false";
+            cout<<url<<endl;
+            printf("\n");
+            int stop = 0;
+            int drop[DROP + 1] = { 0 };
+            for (int row = 0; row < ROW; row++) {
+            	for (int col = 0; col < COL; col++) {
+            		if (1 <= f_field[row][col] && f_field[row][col] <= DROP) {
+            		drop[f_field[row][col]]++;
+            		}
+            	}
+            }
+            for (int i = 1; i <= DROP; i++) {
+            	stop += drop[i] / 3;
+            }
+            cout<<"maxcombo="<<stop<<endl;
         }
     } else {
         // データ生成モード (ここに必要な場合は既存のBEAM_SEARCHを移植)
