@@ -49,6 +49,7 @@ using namespace std;
 #define PROBLEM 1000 // 生成する教師データの数
 #define BONUS 10
 #define NODE_SIZE 2000 
+#define TEST 100
 
 // NNパラメータ
 #define INPUT (ROW*COL)
