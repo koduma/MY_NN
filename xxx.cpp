@@ -342,25 +342,13 @@ void extract_features(F_T field[ROW][COL], double features_out[TOTAL_NN_INPUT_SI
     }
     double connected_counts[DROP + 1]; // 0は未使用
     count_connected_sets(field, connected_counts);
-    double stop = 0;
-    int drop[DROP + 1] = { 0 };
-    for (int row = 0; row < ROW; row++) {
-        for (int col = 0; col < COL; col++) {
-            if (1 <= field[row][col] && field[row][col] <= DROP) {
-                drop[field[row][col]]++;
-            }
-        }
-    }
-    for (int i = 1; i <= DROP; i++) {
-        stop += (double)(drop[i] / 3);
-    }
 
     for (int c = 1; c <= DROP; ++c) {
         int feature_index = actual_input_size + (c - 1);
         
         // 連結セット数 (例: 3セット) を正規化 (例: 最大コンボ数6で割る)
         // 6コンボは最大値に近いので、6で割って0.0～1.0の範囲に収めます。
-        features_out[feature_index] = connected_counts[c] / stop; 
+        features_out[feature_index] = connected_counts[c] / 10.0; 
     }
 }
 
