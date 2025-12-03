@@ -49,7 +49,7 @@ using namespace std;
 #define BONUS 10//評価値改善係数
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 #define NODE_SIZE MAX(500,4*BEAM_WIDTH)
-#define TRAIN 10000//koko,test時-1,学習時10000
+#define TRAIN -1//koko,test時-1,学習時10000
 #define H_PARAMS 100//koko
 #define TEST 100
 typedef char F_T;//盤面型
@@ -83,7 +83,7 @@ int data1[15][ROW*COL][H_PARAMS];
 int data2[15][H_PARAMS][ROW*COL];
 
 double max_avg=0;
-bool change_weight=false;//koko
+bool change_weight=true;//koko
 
 bool go=false;
 
@@ -847,6 +847,8 @@ void sub(int type){
 
     double avg=(double)(acc)/(double)(acc+mistake);
 
+    if(type==0){max_avg=avg;printf("max_avg=%lf\n",max_avg);}
+
     if(avg>max_avg&&type>0){
         printf("max_avg=%lf,avg=%lf\n",avg,max_avg);
         max_avg=avg;
@@ -887,7 +889,7 @@ int main() {
     
     */
 	
-	bool start_test=false;//koko
+	bool start_test=true;//koko
 	if(start_test){
         ifstream myf ("Data1.txt");
 	    string ls;
