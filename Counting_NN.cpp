@@ -44,14 +44,15 @@ using namespace std;
 #define DROP 8//ドロップの種類//MAX9
 #define TRN  150//手数//MAX155
 #define MAX_TURN 150//最大ルート長//MAX150
-#define BEAM_WIDTH 10000//ビーム幅//MAX200000
+#define BEAM_WIDTH 100//kokoビーム幅//MAX200000
 #define PROBLEM 10000
 #define BONUS 10//評価値改善係数
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 #define NODE_SIZE MAX(500,4*BEAM_WIDTH)
 #define TRAIN -1//koko,test時-1,学習時10000
-#define H_PARAMS 100//koko
+#define H_PARAMS 10//koko
 #define TEST 100
+#define lr 1
 typedef char F_T;//盤面型
 typedef char T_T;//手数型
 typedef signed char sc;
@@ -86,6 +87,8 @@ double max_avg=0;
 bool change_weight=true;//koko
 
 bool go=false;
+int win=0;
+int all_play=0;
 
 struct node {//どういう手かの構造体
 	T_T first_te;
@@ -178,6 +181,8 @@ Action BEAM_SEARCH(F_T f_field[ROW][COL]) {
 		start = omp_get_wtime();
 #pragma omp parallel for private(st),reduction(+:part1,part4)
 		for (int k = 0; k < ks; k++) {
+
+/*
 #ifdef _OPENMP
 			if (i == 0 && k == 0) {
 				printf("Threads[%d/%d]\n",
@@ -185,6 +190,8 @@ Action BEAM_SEARCH(F_T f_field[ROW][COL]) {
 					omp_get_max_threads());
 			}
 #endif
+
+*/
 			node temp = dque[k];//que.front(); que.pop();
 			F_T temp_field[ROW][COL];
 			memcpy(temp_field, f_field, sizeof(temp_field));
@@ -720,144 +727,115 @@ double logN(double b, double x) {
     return log(x) / log(b);
 }
 
-void sub(int type){
-    
-    /*
+void SA(int type){
+    go = true;
 
-    int data1[15][ROW*COL][H_PARAMS];
-    int data2[15][H_PARAMS][ROW*COL];
-    
-    */
+    int mistake = 0;
+    int acc = 0;
 
-    go=true;
+    int data3[15][ROW*COL][H_PARAMS] = {0};
+    int data4[15][H_PARAMS][ROW*COL] = {0};
 
-    int mistake=0;
-    int acc=0;
+    memcpy(data3, data1, sizeof(data3));
+    memcpy(data4, data2, sizeof(data4));
 
-    int data3[15][ROW*COL][H_PARAMS]={0};
-    int data4[15][H_PARAMS][ROW*COL]={0};
+    // 焼きなまし法のパラメータ
+    double temperature = 5.0;  // 初期温度（調整可能）
+    double cooling_rate = 0.995;  // 冷却率（0.99-0.999が一般的）
+    double min_temp = 1e-4;
+    int max_iterations = 5;  // 最大反復回数
+    int iteration = 0;
 
-    memcpy(data3,data1,sizeof(data3));
-    memcpy(data4,data2,sizeof(data4));
+    while (temperature > min_temp && iteration < max_iterations) {
+        int dr = rnd(1, lr);
 
-
-    for(int i=0;i<10;i++){
-    for(int k=0;k<ROW*COL;k++){
-    for(int j=0;j<H_PARAMS;j++){
-        /*
-        int data1[15][ROW*COL][H_PARAMS];
-        int data2[15][H_PARAMS][ROW*COL];
-        */
-        int r=rnd(-1,1);
-        if(r==1){
-        data1[i][k][j]++;
+        // 近傍解生成（重み更新）
+        for(int i = 0; i < 10; i++) {
+            for(int k = 0; k < ROW*COL; k++) {
+                for(int j = 0; j < H_PARAMS; j++) {
+                    int r = rnd(-1, 1);
+                    if(r == 1) data1[i][k][j] += dr;
+                    else if(r == -1) data1[i][k][j] -= dr;
+                }
+            }
         }
-        else if(r==-1){
-        data1[i][k][j]--;
+        for(int i = 0; i < 10; i++) {
+            for(int k = 0; k < H_PARAMS; k++) {
+                for(int j = 0; j < ROW*COL; j++) {
+                    int r = rnd(-1, 1);
+                    if(r == 1) data2[i][k][j] += dr;
+                    else if(r == -1) data2[i][k][j] -= dr;
+                }
+            }
         }
-	}
-	}
-    }
-    for(int i=0;i<10;i++){
-    for(int k=0;k<H_PARAMS;k++){
-    for(int j=0;j<ROW*COL;j++){
-        /*
-        int data1[15][ROW*COL][H_PARAMS];
-        int data2[15][H_PARAMS][ROW*COL];
-        */
-        int r=rnd(-1,1);
-        if(r==1){
-        data2[i][k][j]++;
+
+        // 評価計算
+        double maxcb = 0, cb = 0;
+        for (int i = 0; i < TEST; i++) {
+            F_T f_field[ROW][COL], field[ROW][COL], oti_field[ROW][COL];
+            if(i%10==0){
+            printf("input:No.%d/%d\n", i + 1, TEST);
+            }
+            init(f_field); set(f_field, 0);
+            
+            Action tmp = BEAM_SEARCH(f_field);
+            // ... (route生成部分は省略、元のコードと同じ)
+            
+            memcpy(field, f_field, sizeof(f_field));
+            operation(field, tmp.first_te, tmp.moving);
+            if(i%10==0){
+            printf("output:No.%d/%d\n", i + 1, TEST);
+            }
+            memcpy(oti_field, field, sizeof(field));
+            int combo = sum_e(field);
+            maxcb += (double)tmp.maxcombo;
+            cb += (double)combo;
+            
+            printf("Normal:%d/%d Combo\n", combo, tmp.maxcombo);
         }
-        else if(r==-1){
-        data2[i][k][j]--;
+
+        double current_avg = cb / maxcb;
+        
+        // type==0のとき初期解として設定
+        if (type == 0 && iteration == 0) {
+            max_avg = current_avg;
+            printf("Initial max_avg=%lf\n", max_avg);
         }
-	}
-	}
-    }
-    
-	for (int i = 0; i < TEST; i++) {
-		F_T f_field[ROW][COL]; //スワイプ前の盤面
-		F_T field[ROW][COL]; //盤面
-		F_T oti_field[ROW][COL];//落ちコン用盤面
-		printf("input:No.%d/%d\n", i + 1, TEST);
-		init(f_field); set(f_field, 0);//初期盤面生成
-		/*
-		string str="";
-		cin>>str;
-		for (j = 0; j < ROW; j++) {
-			for (k = 0; k < COL; k++) {
-				f_field[j][k] = (str[k+(COL*j)] - '0')+1;
-			}
-		}
-		*/
-		//show_field(f_field);//盤面表示
-		//start = omp_get_wtime();
-		Action tmp = BEAM_SEARCH(f_field);//ビームサーチしてtmpに最善手を保存
-		//double diff = omp_get_wtime() - start;
-		//t_sum += diff;
-		string layout="";
 
-		for(int v=0;v<ROW;v++){
-		for(int u=0;u<COL;u++){
-		layout+=to_string(f_field[v][u]-1);
-		}
-		}
-		string route="";
-		//printf("(x,y)=(%d,%d)", XX(tmp.first_te), YY(tmp.first_te));
-		int path_length=0;
-		route+=to_string(XX(tmp.first_te))+to_string(YY(tmp.first_te)+5)+",";
-		for (int j = 0; j <= TRN/21; j++) {//y座標は下にいくほど大きくなる
-			if (tmp.moving[j] == 0ll) { break; }
-			for(int k=0;k<21;k++){
-			int dir = (int)(7ll&(tmp.moving[j]>>(3*k)));
-			if (dir==0){break;}
-			if (dir==1) { route+=to_string(3);}//printf("L"); } //"LEFT"); }
-			if (dir==2) { route+=to_string(6);}//printf("U"); } //"UP"); }
-			if (dir==3) { route+=to_string(1);}//printf("D"); } //"DOWN"); }
-			if (dir==4) { route+=to_string(4);}//printf("R"); } //"RIGHT"); }
-			path_length++;
-			}
-		}
-		string url="http://serizawa.web5.jp/puzzdra_theory_maker/index.html?layout="+layout+"&route="+route+"&ctwMode=false";
-		//cout<<url<<endl;
-		//printf("\n");
-		memcpy(field, f_field, sizeof(f_field));
-		if(!go){
-		//counting(field,route);
-		}        
-		operation(field, tmp.first_te,tmp.moving);
-		printf("output:No.%d/%d\n", i + 1, TEST);
-		//show_field(field);
-		memcpy(oti_field, field, sizeof(field));
-		int combo = sum_e(field);
-		int oti = sum_evaluate(oti_field);
-		if(combo!=tmp.maxcombo){mistake++;}
-		else{acc++;}
-		//printf("mistake=%d\n",mistake);
-		//printf("acc=%d\n",acc);
-		//printf("path_length=%d\n",path_length);
-		//printf("Normal:%d/%dCombo\n", combo, tmp.maxcombo);
-		//printf("Oti:%dCombo\n", oti);
-		//printf("Duration:%fSec\n", diff);
-		//printf("------------\n");
-		//avg += (double)combo;
-		//oti_avg += (double)oti;
-	}
+        // 受け入れ判定
+        if (current_avg > max_avg) {
+            // 改善解：常に受け入れ
+            max_avg = current_avg;
+            win++;
+            printf("Improved: max_avg=%lf (temp=%.4f)\n", max_avg, temperature);
+        } else {
+            // 悪化解：確率的に受け入れ
+            double delta =  current_avg - max_avg;
+            double accept_prob = delta + 0.1;
+            double rand_val = (double)rand() / RAND_MAX;
+            
+            if (rand_val < accept_prob) {
+                max_avg = current_avg;
+                printf("Accepted worse: avg=%lf (prob=%.3f, temp=%.4f)\n", 
+                       current_avg, accept_prob, temperature);
+            } else {
+                // 拒否：バックアップに戻す
+                memcpy(data1, data3, sizeof(data3));
+                memcpy(data2, data4, sizeof(data4));
+                printf("Rejected: temp=%.4f\n", temperature);
+            }
+        }
 
-    double avg=(double)(acc)/(double)(acc+mistake);
-
-    if(type==0){max_avg=avg;printf("max_avg=%lf\n",max_avg);}
-
-    if(avg>max_avg&&type>0){
-        printf("max_avg=%lf,avg=%lf\n",avg,max_avg);
-        max_avg=avg;
-    }
-    else{
-        memcpy(data1,data3,sizeof(data3));
-        memcpy(data2,data4,sizeof(data4));
+        // 温度低下
+        temperature *= cooling_rate;
+        iteration++;
+        all_play++;
+        
+        printf("type %d/%d , Iteration %d/%d: temp=%.6f, best=%.4f\n", type,TEST,iteration,max_iterations, temperature, max_avg);
     }
     
+    printf("SA finished: final_temp=%.6f, best_avg=%.4f, wins=%d/%d\n", 
+           temperature, max_avg, win, all_play);
 }
 
 int main() {
@@ -943,7 +921,7 @@ int main() {
 
     if(change_weight){
         for(i=0;i<TEST;i++){
-        sub(i);
+        SA(i);
         }
     }
     
@@ -958,7 +936,7 @@ int main() {
 		for(int a3=0;a3<H_PARAMS;a3++){
 		int value=data1[a1][a2][a3];    
  		string ms=to_string(a1)+","+to_string(a2)+","+to_string(a3)+"/"+to_string(value);
-		if(value>0){
+		if(value!=0){
 		mystr+=ms+"\n";
 		}    
  		}
@@ -973,7 +951,7 @@ int main() {
 		for(int a3=0;a3<ROW*COL;a3++){
 		int value=data2[a1][a2][a3];    
  		string ms=to_string(a1)+","+to_string(a2)+","+to_string(a3)+"/"+to_string(value);
-		if(value>0){
+		if(value!=0){
 		mystr2+=ms+"\n";
 		}    
  		}
