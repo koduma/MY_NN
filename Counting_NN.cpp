@@ -49,7 +49,7 @@ using namespace std;
 #define BONUS 10//評価値改善係数
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 #define NODE_SIZE MAX(500,4*BEAM_WIDTH)
-#define TRAIN -1//koko,test時-1,学習時10000
+#define TRAIN 10000//koko,test時-1,学習時10000
 #define H_PARAMS 10//koko
 #define TEST 100
 #define lr 1
@@ -80,8 +80,7 @@ ll zoblish_field[ROW][COL][DROP+1];
 int sum_e3(F_T field[ROW][COL], sc* combo, int p_maxcombo[DROP+1]);
 int evaluate3(F_T field[ROW][COL], int flag, sc* combo, int p_maxcombo[DROP+1]);
 
-int data1[15][ROW*COL][H_PARAMS];
-int data2[15][H_PARAMS][ROW*COL];
+int data[15][ROW*COL][H_PARAMS][ROW*COL];
 
 double max_avg=0;
 bool change_weight=true;//koko
@@ -496,12 +495,11 @@ int evaluate3(F_T field[ROW][COL], int flag, sc* combo, int p_maxcombo[DROP+1]) 
     vector<int>v[10];
     if(go){
 	for(int i=0;i<ROW*COL;i++){
-    int a = (int)(field[i/COL][i%COL]);
-    v[a].push_back(i);
+    	int a = (int)(field[i/COL][i%COL]);
+    	v[a].push_back(i);
 	}
 	for(int i=0;i<10;i++){sort(v[i].begin(),v[i].end());}
     }
-
 	while (1) {
 		int cmb = 0;
 		int cmb2 = 0;
@@ -582,8 +580,7 @@ int evaluate3(F_T field[ROW][COL], int flag, sc* combo, int p_maxcombo[DROP+1]) 
 	ev += oti;
 	if(!go){return ev;}
 	else{   
-	ev=0;
-    int h_k[H_PARAMS]={0};
+	ev*=20;
 	for(int i=0;i<10;i++){
         for(int k=0;k<H_PARAMS;k++){
         for(int j=0;j<(int)v[i].size();j+=3){
@@ -597,31 +594,12 @@ int evaluate3(F_T field[ROW][COL], int flag, sc* combo, int p_maxcombo[DROP+1]) 
             int data1[15][ROW*COL][H_PARAMS];
             int data2[15][H_PARAMS][ROW*COL];
             */
-            h_k[k]+=data1[i][d1][k];//data2[i][k][d2];
+            ev+=data[i][d1][k][d2];
 	}
 	}
     }
-    for(int k=0;k<H_PARAMS;k++){
-    if (h_k[k] < 0) {
-        h_k[k] = 0;
-    }
-    }
-    for(int i=0;i<10;i++){
-        for(int k=0;k<H_PARAMS;k++){
-        for(int j=0;j<(int)v[i].size();j+=3){
-            if((int)v[i].size()<=j+2){break;}
-            int p1 = v[i][j];
-            int p2 = v[i][j+1];
-            int p3 = v[i][j+2];
-            int d1 = p2 - p1; 
-            int d2 = p3 - p1;
-            /*
-            int data1[15][ROW*COL][H_PARAMS];
-            int data2[15][H_PARAMS][ROW*COL];
-            */
-            ev+=h_k[k]*data2[i][k][d2];//data2[i][k][d2];
-	}
-	}
+    if (ev < 0) {
+        ev = 0;
     }
         return ev;    
     }
@@ -691,8 +669,7 @@ void memo(F_T field[ROW][COL]){
         int data1[15][ROW*COL][H_PARAMS];
         int data2[15][H_PARAMS][ROW*COL];
         */
-        data1[i][d1][k]++;
-        data2[i][k][d2]++;
+        data[i][d1][k][d2]++;
     }
 	}
     }
@@ -733,11 +710,11 @@ void SA(int type){
     int mistake = 0;
     int acc = 0;
 
-    int data3[15][ROW*COL][H_PARAMS] = {0};
-    int data4[15][H_PARAMS][ROW*COL] = {0};
+    //int data[15][ROW*COL][H_PARAMS][ROW*COL];
 
-    memcpy(data3, data1, sizeof(data3));
-    memcpy(data4, data2, sizeof(data4));
+    int data3[15][ROW*COL][H_PARAMS][ROW*COL] = {0};
+
+    memcpy(data3, data, sizeof(data3));
 
     // 焼きなまし法のパラメータ
     double temperature = 5.0;  // 初期温度（調整可能）
@@ -753,19 +730,12 @@ void SA(int type){
         for(int i = 0; i < 10; i++) {
             for(int k = 0; k < ROW*COL; k++) {
                 for(int j = 0; j < H_PARAMS; j++) {
+		for(int o=0;o<ROW*COL;o++){
                     int r = rnd(-1, 1);
-                    if(r == 1) data1[i][k][j] += dr;
-                    else if(r == -1) data1[i][k][j] -= dr;
+                    if(r == 1) data[i][k][j][o] += dr;
+                    else if(r == -1) data[i][k][j][o] -= dr;
                 }
-            }
-        }
-        for(int i = 0; i < 10; i++) {
-            for(int k = 0; k < H_PARAMS; k++) {
-                for(int j = 0; j < ROW*COL; j++) {
-                    int r = rnd(-1, 1);
-                    if(r == 1) data2[i][k][j] += dr;
-                    else if(r == -1) data2[i][k][j] -= dr;
-                }
+		}
             }
         }
 
@@ -788,10 +758,11 @@ void SA(int type){
             }
             memcpy(oti_field, field, sizeof(field));
             int combo = sum_e(field);
-            maxcb += (double)tmp.maxcombo;
-            cb += (double)combo;
-            
-            printf("Normal:%d/%d Combo\n", combo, tmp.maxcombo);
+            //maxcb += (double)tmp.maxcombo;
+            //cb += (double)combo;
+            maxcb+=1.0;
+            if(tmp.maxcombo==combo){cb+=1.0;}
+            //printf("Normal:%d/%d Combo\n", combo, tmp.maxcombo);
         }
 
         double current_avg = cb / maxcb;
@@ -808,22 +779,11 @@ void SA(int type){
             max_avg = current_avg;
             win++;
             printf("Improved: max_avg=%lf (temp=%.4f)\n", max_avg, temperature);
-        } else {
+        }else {
             // 悪化解：確率的に受け入れ
-            double delta =  current_avg - max_avg;
-            double accept_prob = delta + 0.1;
-            double rand_val = (double)rand() / RAND_MAX;
-            
-            if (rand_val < accept_prob) {
-                max_avg = current_avg;
-                printf("Accepted worse: avg=%lf (prob=%.3f, temp=%.4f)\n", 
-                       current_avg, accept_prob, temperature);
-            } else {
-                // 拒否：バックアップに戻す
-                memcpy(data1, data3, sizeof(data3));
-                memcpy(data2, data4, sizeof(data4));
-                printf("Rejected: temp=%.4f\n", temperature);
-            }
+            // 拒否：バックアップに戻す
+            memcpy(data, data3, sizeof(data3));
+            printf("Rejected: temp=%.4f\n", temperature);
         }
 
         // 温度低下
@@ -862,14 +822,13 @@ int main() {
 
     /*
 
-    int data1[15][ROW*COL][H_PARAMS];
-    int data2[15][H_PARAMS][ROW*COL];
+    int data[15][ROW*COL][H_PARAMS][ROW*COL];
     
     */
 	
 	bool start_test=true;//koko
 	if(start_test){
-        ifstream myf ("Data1.txt");
+        ifstream myf ("Data.txt");
 	    string ls;
 	    while(getline(myf,ls)){
 		    string parent="";
@@ -881,41 +840,20 @@ int main() {
 			    else{parent+=ls[i];}
 		    }
 		    int counter=0;
-		    string xz[3]={"","",""}; 
+		    string xz[4]={"","","",""}; 
 		    for(i=0;i<(int)parent.size();i++){
 			    if(parent[i]==','){counter++;continue;}
 			    xz[counter]+=parent[i];
 		    }
-		    data1[stoi(xz[0])][stoi(xz[1])][stoi(xz[2])]=stoi(child);
+		    data[stoi(xz[0])][stoi(xz[1])][stoi(xz[2])][stoi(xz[3])]=stoi(child);
 		    }
 		myf.close();
-        ifstream myf2 ("Data2.txt");
-	    string ls2;
-	    while(getline(myf2,ls2)){
-		    string parent="";
-		    string child="";
-		    bool slash=false;
-		    for(i=0;i<(int)ls2.size();i++){
-			    if(ls[i]=='/'){slash=true;continue;}
-			    if(slash){child+=ls2[i];}
-			    else{parent+=ls2[i];}
-		    }
-		    int counter=0;
-		    string xz[3]={"","",""}; 
-		    for(i=0;i<(int)parent.size();i++){
-			    if(parent[i]==','){counter++;continue;}
-			    xz[counter]+=parent[i];
-		    }
-		    data2[stoi(xz[0])][stoi(xz[1])][stoi(xz[2])]=stoi(child);
-		    }
-		myf2.close();
 	}
 
 
     /*
 
-    int data1[15][ROW*COL][H_PARAMS];
-    int data2[15][H_PARAMS][ROW*COL];
+    int data[15][ROW*COL][H_PARAMS][ROW*COL];
     
     */
 
@@ -924,42 +862,29 @@ int main() {
         SA(i);
         }
     }
-    
+        double MAXCOMBOT=0;
 	for (i = 0; i < PROBLEM; i++) {//PROBLEM問解く
 		if(i<TRAIN){go=false;}
 		else{go=true;}
-		if(i%10==0&&(!go||change_weight)){
- 		ofstream fi("Data1.txt");
+		if(i%10==0&&(!go||change_weight)){//6
+ 		ofstream fi("Data.txt");
 		string mystr="";    
- 		for (int a1=0;a1<10;a1++){
-		for(int a2=0;a2<ROW*COL;a2++){
-		for(int a3=0;a3<H_PARAMS;a3++){
-		int value=data1[a1][a2][a3];    
- 		string ms=to_string(a1)+","+to_string(a2)+","+to_string(a3)+"/"+to_string(value);
-		if(value!=0){
+ 		for (int a1=0;a1<10;a1++){//5
+		for(int a2=0;a2<ROW*COL;a2++){//4
+		for(int a3=0;a3<H_PARAMS;a3++){//3
+		for(int a4=0;a4<ROW*COL;a4++){//2
+		int value=data[a1][a2][a3][a4];    
+ 		string ms=to_string(a1)+","+to_string(a2)+","+to_string(a3)+","+to_string(a4)+"/"+to_string(value);
+		if(value!=0){//1
 		mystr+=ms+"\n";
-		}    
- 		}
-		}
-		}
+		}//1    
+ 		}//2
+		}//3
+		}//4
+		}//5
  		fi<<mystr;
  		fi.close();
-        ofstream fi2("Data2.txt");
-		string mystr2="";    
- 		for (int a1=0;a1<10;a1++){
-		for(int a2=0;a2<H_PARAMS;a2++){
-		for(int a3=0;a3<ROW*COL;a3++){
-		int value=data2[a1][a2][a3];    
- 		string ms=to_string(a1)+","+to_string(a2)+","+to_string(a3)+"/"+to_string(value);
-		if(value!=0){
-		mystr2+=ms+"\n";
-		}    
- 		}
-		}
-		}
- 		fi2<<mystr2;
- 		fi2.close();
- 		}
+ 		}//6
 
 		F_T f_field[ROW][COL]; //スワイプ前の盤面
 		F_T field[ROW][COL]; //盤面
@@ -1027,9 +952,10 @@ int main() {
 		printf("------------\n");
 		avg += (double)combo;
 		oti_avg += (double)oti;
+		MAXCOMBOT+=(double)tmp.maxcombo;
 	}
 	printf("TotalDuration:%fSec\n", t_sum);
-	printf("Avg.NormalCombo #:%f/%f\n", avg / (double)i, MAXCOMBO / (double)i);
+	printf("Avg.NormalCombo #:%f/%f\n", avg / (double)i, MAXCOMBOT / (double)i);
 	printf("Avg.OtiCombo #:%f\n", oti_avg / (double)i);
 	printf("p1:%f,p2:%f,p3:%f,p4:%f\n", part1, part2, part3, part4);
 	j = getchar();
