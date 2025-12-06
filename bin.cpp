@@ -67,24 +67,24 @@ int main() {
 		    }
 		myf.close();
 	}
-  int SIZ=100000;
-  int pattern[SIZ]={0};
-  int maxp=0;
-  for (int a1=0;a1<10;a1++){
+	int SIZ=100000;
+	int pattern[SIZ]={0};
+	int maxp=0;
+	for (int a1=0;a1<10;a1++){
 	for(int a2=0;a2<10;a2++){
 	for(int a3=0;a3<ROW*COL;a3++){
-  for(int a4=0;a4<ROW*COL;a4++){
-  for(int a5=0;a5<ROW*COL;a5++){
-  for(int a6=0;a6<ROW*COL;a6++){    
+	for(int a4=0;a4<ROW*COL;a4++){
+	for(int a5=0;a5<ROW*COL;a5++){
+	for(int a6=0;a6<ROW*COL;a6++){    
 	int value=data2[a1][a2][a3][a4][a5][a6];    
  	pattern[value]++;
-  if(value>maxp){maxp=value;}
+	if(value>maxp){maxp=value;}
  	}
 	}
 	}
-  }
-  }
-  }
+	}
+	}
+	}
     int sum[5]={0};
     for(i=1;i<=10;i++){
     sum[0]+=pattern[i];
