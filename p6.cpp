@@ -771,9 +771,9 @@ int main() {
  		for (int a1=0;a1<10;a1++){
 		for(int a2=0;a2<10;a2++){
 		for(int a3=0;a3<ROW*COL;a3++){
-    for(int a4=0;a4<ROW*COL;a4++){
-    for(int a5=0;a5<ROW*COL;a5++){
-    for(int a6=0;a6<ROW*COL;a6++){    
+		for(int a4=0;a4<ROW*COL;a4++){
+		for(int a5=0;a5<ROW*COL;a5++){
+		for(int a6=0;a6<ROW*COL;a6++){    
 		int value=data2[a1][a2][a3][a4][a5][a6];    
  		string ms=to_string(a1)+","+to_string(a2)+","+to_string(a3)+","+to_string(a4)+","+to_string(a5)+","+to_string(a6)+"/"+to_string(value);
 		if(value>0){
@@ -782,9 +782,9 @@ int main() {
  		}
 		}
 		}
-    }
-    }
-    }
+		}
+		}
+		}
  		fi<<mystr;
  		fi.close();
  		}
