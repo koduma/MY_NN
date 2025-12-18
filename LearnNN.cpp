@@ -1,7 +1,7 @@
 /*
 実行コマンド:
-g++ -O2 -std=c++11 -fopenmp new3.cpp -o new3
-./new3
+g++ -O2 -std=c++11 -fopenmp LearnNN.cpp -o LearnNN
+./LearnNN
 */
 #pragma warning(disable:4710)
 #pragma warning(disable:4711)
@@ -423,13 +423,25 @@ double run_batch(int batch_size) {
         F_T f_field[ROW][COL], field[ROW][COL];
         init(f_field); set(f_field, 0);
         Action tmp = BEAM_SEARCH(f_field);
-       
+        int path_length=0;
+		for (int j = 0; j <= TRN/21; j++) {
+			if (tmp.moving[j] == 0ll) { break; }
+			for(int k=0;k<21;k++){
+			int dir = (int)(7ll&(tmp.moving[j]>>(3*k)));
+			if (dir==0){break;}
+			path_length++;
+			}
+		}
         memcpy(field, f_field, sizeof(f_field));
         operation(field, tmp.first_te, tmp.moving);
         int combo = sum_e(field);
        
         if (tmp.maxcombo > 0) {
-            total_score += (double)combo / (double)tmp.maxcombo;
+            double combo_weight = 1.0;
+            double length_penalty = 0.001;
+            double combo_score = (double)combo / (double)tmp.maxcombo;
+            double length_score = (double)path_length * length_penalty;
+            total_score += (combo_score - length_score);
         }
     }
     printf("\n");
