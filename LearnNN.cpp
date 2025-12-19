@@ -48,8 +48,7 @@ using namespace std;
 #define TEST 10000         // 学習の反復回数
 #define BONUS 10
 
-#define D_OFFSET (ROW*COL)
-#define D_SIZE (2*ROW*COL)
+
 #define DY_OFFSET (ROW) 
 #define DX_OFFSET (COL) 
 #define X_RANGE (2 * COL + 1)
@@ -89,7 +88,7 @@ ll zoblish_field[ROW][COL][DROP+1];
 
 // ネットワーク構造体 (整数版: 推論用)
 struct NNUE {
-    int weights1[D_SIZE][D_SIZE][H_PARAMS1]; // サイズ拡張
+    int weights1[REL_SIZE][REL_SIZE][H_PARAMS1]; // サイズ拡張
     int weights2[H_PARAMS1][H_PARAMS2];
     int biases2[H_PARAMS2];
     int weights3[H_PARAMS2];
@@ -98,7 +97,7 @@ struct NNUE {
 
 // ネットワーク構造体 (実数版: 学習用)
 struct NNUE_F {
-    double weights1[D_SIZE][D_SIZE][H_PARAMS1]; // サイズ拡張
+    double weights1[REL_SIZE][REL_SIZE][H_PARAMS1]; // サイズ拡張
     double weights2[H_PARAMS1][H_PARAMS2];
     double biases2[H_PARAMS2];
     double weights3[H_PARAMS2];
@@ -107,7 +106,7 @@ struct NNUE_F {
 
 // 摂動構造体 (微小変化用)
 struct NNUE_Delta {
-    sc weights1[D_SIZE][D_SIZE][H_PARAMS1]; // サイズ拡張
+    sc weights1[REL_SIZE][REL_SIZE][H_PARAMS1]; // サイズ拡張
     sc weights2[H_PARAMS1][H_PARAMS2];
     sc biases2[H_PARAMS2];
     sc weights3[H_PARAMS2];
@@ -155,8 +154,8 @@ double part1 = 0, part2 = 0, part3 = 0, part4 = 0, MAXCOMBO = 0;
 
 // --- 重み同期関数 ---
 void sync_weights() {
-    for (int i = 0; i < D_SIZE; i++)
-        for (int j = 0; j < D_SIZE; j++)
+    for (int i = 0; i < REL_SIZE; i++)
+        for (int j = 0; j < REL_SIZE; j++)
             for (int k = 0; k < H_PARAMS1; k++)
                 net.weights1[i][j][k] = (int)round(net_f.weights1[i][j][k]);
 
@@ -413,9 +412,8 @@ void SA(int type) {
     static bool initialized = false;
     if (!initialized) {
         printf("Initializing Net_F from Net...\n");
-        // 初期化ループ: D_SIZEまで回す
-        for (int i = 0; i < D_SIZE; i++)
-            for (int j = 0; j < D_SIZE; j++)
+        for (int i = 0; i < REL_SIZE; i++)
+            for (int j = 0; j < REL_SIZE; j++)
                 for (int k = 0; k < H_PARAMS1; k++)
                     net_f.weights1[i][j][k] = (double)net.weights1[i][j][k];
 
@@ -432,8 +430,8 @@ void SA(int type) {
     }
 
     // 1. Delta生成
-    for (int i = 0; i < D_SIZE; i++)
-        for (int j = 0; j < D_SIZE; j++)
+    for (int i = 0; i < REL_SIZE; i++)
+        for (int j = 0; j < REL_SIZE; j++)
             for (int k = 0; k < H_PARAMS1; k++)
                 delta.weights1[i][j][k] = (rnd(0, 1) == 0) ? 1 : -1;
 
@@ -450,8 +448,8 @@ void SA(int type) {
     // 2. Plus評価
     #define APPLY_DELTA(VAL, D_VAL, SIGN) ((int)round(VAL + (SIGN * c * D_VAL)))
    
-    for (int i = 0; i < D_SIZE; i++)
-        for (int j = 0; j < D_SIZE; j++)
+    for (int i = 0; i < REL_SIZE; i++)
+        for (int j = 0; j < REL_SIZE; j++)
             for (int k = 0; k < H_PARAMS1; k++)
                 net.weights1[i][j][k] = APPLY_DELTA(net_f.weights1[i][j][k], delta.weights1[i][j][k], 1);
    
@@ -468,8 +466,8 @@ void SA(int type) {
     double score_plus = run_batch(batch_size);
 
     // 3. Minus評価
-    for (int i = 0; i < D_SIZE; i++)
-        for (int j = 0; j < D_SIZE; j++)
+    for (int i = 0; i < REL_SIZE; i++)
+        for (int j = 0; j < REL_SIZE; j++)
             for (int k = 0; k < H_PARAMS1; k++)
                 net.weights1[i][j][k] = APPLY_DELTA(net_f.weights1[i][j][k], delta.weights1[i][j][k], -1);
    
@@ -489,8 +487,8 @@ void SA(int type) {
     double grad_estimate = (score_plus - score_minus) / (2.0 * c);
     double step = learning_rate * grad_estimate;
 
-    for (int i = 0; i < D_SIZE; i++)
-        for (int j = 0; j < D_SIZE; j++)
+    for (int i = 0; i < REL_SIZE; i++)
+        for (int j = 0; j < REL_SIZE; j++)
             for (int k = 0; k < H_PARAMS1; k++)
                 net_f.weights1[i][j][k] += step * delta.weights1[i][j][k];
 
@@ -519,8 +517,8 @@ bool saveNNUE(const NNUE& net, const NNUE_F& net_f, const NNUE_Delta& delta, con
     if (!ofs) return false;
 
     ofs << "===NET===\n";
-    for (int i = 0; i < D_SIZE; ++i) {
-        for (int j = 0; j < D_SIZE; ++j) {
+    for (int i = 0; i < REL_SIZE; ++i) {
+        for (int j = 0; j < REL_SIZE; ++j) {
             for (int k = 0; k < H_PARAMS1; ++k) ofs << net.weights1[i][j][k] << ' ';
             ofs << '\n';
         }
@@ -537,8 +535,8 @@ bool saveNNUE(const NNUE& net, const NNUE_F& net_f, const NNUE_Delta& delta, con
 
     ofs << "===NET_F===\n";
     ofs.precision(10);
-    for (int i = 0; i < D_SIZE; ++i) {
-        for (int j = 0; j < D_SIZE; ++j) {
+    for (int i = 0; i < REL_SIZE; ++i) {
+        for (int j = 0; j < REL_SIZE; ++j) {
             for (int k = 0; k < H_PARAMS1; ++k) ofs << net_f.weights1[i][j][k] << ' ';
             ofs << '\n';
         }
@@ -554,8 +552,8 @@ bool saveNNUE(const NNUE& net, const NNUE_F& net_f, const NNUE_Delta& delta, con
     ofs << net_f.bias3 << '\n';
 
     ofs << "===DELTA===\n";
-    for (int i = 0; i < D_SIZE; ++i) {
-        for (int j = 0; j < D_SIZE; ++j) {
+    for (int i = 0; i < REL_SIZE; ++i) {
+        for (int j = 0; j < REL_SIZE; ++j) {
             for (int k = 0; k < H_PARAMS1; ++k) ofs << (int)delta.weights1[i][j][k] << ' ';
             ofs << '\n';
         }
@@ -582,8 +580,8 @@ bool loadNNUE(NNUE& net, NNUE_F& net_f, NNUE_Delta& delta, const std::string& fi
     int temp_int;
 
     if (!(ifs >> marker) || marker != "===NET===") return false;
-    for (int i = 0; i < D_SIZE; ++i) {
-        for (int j = 0; j < D_SIZE; ++j) {
+    for (int i = 0; i < REL_SIZE; ++i) {
+        for (int j = 0; j < REL_SIZE; ++j) {
             for (int k = 0; k < H_PARAMS1; ++k) if (!(ifs >> net.weights1[i][j][k])) return false;
         }
     }
@@ -595,8 +593,8 @@ bool loadNNUE(NNUE& net, NNUE_F& net_f, NNUE_Delta& delta, const std::string& fi
     if (!(ifs >> net.bias3)) return false;
 
     if (!(ifs >> marker) || marker != "===NET_F===") return false;
-    for (int i = 0; i < D_SIZE; ++i) {
-        for (int j = 0; j < D_SIZE; ++j) {
+    for (int i = 0; i < REL_SIZE; ++i) {
+        for (int j = 0; j < REL_SIZE; ++j) {
             for (int k = 0; k < H_PARAMS1; ++k) if (!(ifs >> net_f.weights1[i][j][k])) return false;
         }
     }
@@ -608,8 +606,8 @@ bool loadNNUE(NNUE& net, NNUE_F& net_f, NNUE_Delta& delta, const std::string& fi
     if (!(ifs >> net_f.bias3)) return false;
 
     if (!(ifs >> marker) || marker != "===DELTA===") return false;
-    for (int i = 0; i < D_SIZE; ++i) {
-        for (int j = 0; j < D_SIZE; ++j) {
+    for (int i = 0; i < REL_SIZE; ++i) {
+        for (int j = 0; j < REL_SIZE; ++j) {
             for (int k = 0; k < H_PARAMS1; ++k) {
                 if (!(ifs >> temp_int)) return false;
                 delta.weights1[i][j][k] = (sc)temp_int;
@@ -813,9 +811,9 @@ int main() {
                 }
                 // data.txtの読み込み時もオフセットを考慮
                 for(int k=0;k<H_PARAMS1;k++){
-                    int d1_idx = stoi(xz[1]) + D_OFFSET;
-                    int d2_idx = stoi(xz[2]) + D_OFFSET;
-                    if (d1_idx >= 0 && d1_idx < D_SIZE && d2_idx >= 0 && d2_idx < D_SIZE) {
+                    int d1_idx = stoi(xz[1]);
+                    int d2_idx = stoi(xz[2]);
+                    if (d1_idx >= 0 && d1_idx < REL_SIZE && d2_idx >= 0 && d2_idx < REL_SIZE) {
                         net.weights1[d1_idx][d2_idx][k]=stoi(child);
                         net_f.weights1[d1_idx][d2_idx][k]=(double)stoi(child); // net_fにも反映
                     }
@@ -838,4 +836,3 @@ int main() {
     // --- 最終テスト ---
     return 0; // 学習だけならここで終了でOK
 }
-
