@@ -168,60 +168,6 @@ void sync_weights() {
     }
     net.bias3 = (int)round(net_f.bias3);
 }
-
-// --- NNUEスコア計算 ---
-int NNUE_score(F_T board[ROW][COL],int c1,int c2) {
-    vector<int>v[10];
-    for(int i=0;i<ROW*COL;i++){
-        int a = (int)(board[i/COL][i%COL]);
-        if(a==c1||a==c2){
-        v[a].push_back(i);
-        }
-    }
-
-    int input[H_PARAMS1] = {0};
-
-    for(int i=0;i<10;i++){
-    if(i==c1||i==c2){
-        for(int j=0;j<(int)v[i].size();j++){
-            for(int k=0;k<H_PARAMS1;k++){
-                if((int)v[i].size()<=j+2){break;}
-                int p1 = v[i][j];
-                int p2 = v[i][j+1];
-                int p3 = v[i][j+2];
-               
-                // 配列の添字がマイナスにならないようにオフセットを足す
-                int d1 = (p2 - p1) + D_OFFSET;
-                int d2 = (p3 - p1) + D_OFFSET;
-               
-                // 安全装置
-                if(d1 >= 0 && d1 < D_SIZE && d2 >= 0 && d2 < D_SIZE) {
-                    input[k] += net.weights1[d1][d2][k];
-                }
-            }
-        }
-    }
-}
-   
-    // 中間層
-    int hidden[H_PARAMS2] = {0};
-    for (int i = 0; i < H_PARAMS2; i++) {
-        for (int j = 0; j < H_PARAMS1; j++) {
-            hidden[i] += input[j] * net.weights2[j][i];
-        }
-        hidden[i] += net.biases2[i];
-        hidden[i] = max(0, hidden[i]); // ReLU
-    }
-   
-    // 出力層
-    int score = net.bias3;
-    for (int i = 0; i < H_PARAMS2; i++) {
-        score += hidden[i] * net.weights3[i];
-    }
-   
-    return score;
-}
-
 int NNUE_init_score(F_T board[ROW][COL]) {
     vector<int>v[10];
     for(int i=0;i<ROW*COL;i++){
@@ -238,14 +184,20 @@ int NNUE_init_score(F_T board[ROW][COL]) {
                 int p1 = v[i][j];
                 int p2 = v[i][j+1];
                 int p3 = v[i][j+2];
-               
-                // 配列の添字がマイナスにならないようにオフセットを足す
-                int d1 = (p2 - p1) + D_OFFSET;
-                int d2 = (p3 - p1) + D_OFFSET;
-               
-                // 安全装置
-                if(d1 >= 0 && d1 < D_SIZE && d2 >= 0 && d2 < D_SIZE) {
-                    input[k] += net.weights1[d1][d2][k];
+                int r1 = p1 / COL;
+                int c_1 = p1 % COL;
+                int r2 = p2 / COL;
+                int c_2 = p2 % COL;
+                int r3 = p3 / COL;
+                int c_3 = p3 % COL;
+                int dy1 = r2 - r1;
+                int dx1 = c_2 - c_1;
+                int dy2 = r3 - r1;
+                int dx2 = c_3 - c_1;
+                int idx1 = (dy1 + DY_OFFSET) * X_RANGE + (dx1 + DX_OFFSET);
+                int idx2 = (dy2 + DY_OFFSET) * X_RANGE + (dx2 + DX_OFFSET);
+                if(idx1 >= 0 && idx1 < REL_SIZE && idx2 >= 0 && idx2 < REL_SIZE) {
+                    input[k] += net.weights1[idx1][idx2][k];
                 }
             }
         }
@@ -884,4 +836,3 @@ int main() {
     // --- 最終テスト ---
     return 0; // 学習だけならここで終了でOK
 }
-
