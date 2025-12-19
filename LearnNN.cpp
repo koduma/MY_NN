@@ -48,10 +48,12 @@ using namespace std;
 #define TEST 10000         // 学習の反復回数
 #define BONUS 10
 
-// === 重要な変更点: 配列サイズ拡張 ===
-// ドロップ間距離(p2-p1)はマイナスになるため、オフセットを足して正の数として扱う
 #define D_OFFSET (ROW*COL)
-#define D_SIZE (2*ROW*COL) // サイズを倍確保する
+#define D_SIZE (2*ROW*COL)
+#define DY_OFFSET (ROW) 
+#define DX_OFFSET (COL) 
+#define X_RANGE (2 * COL + 1)
+#define REL_SIZE 256
 
 #define NODE_SIZE MAX(500,4*BEAM_WIDTH)
 #define DIR 4
@@ -836,3 +838,4 @@ int main() {
     // --- 最終テスト ---
     return 0; // 学習だけならここで終了でOK
 }
+
