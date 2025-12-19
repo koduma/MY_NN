@@ -183,7 +183,7 @@ int NNUE_score(F_T board[ROW][COL],int c1,int c2) {
 
     for(int i=0;i<10;i++){
     if(i==c1||i==c2){
-        for(int j=0;j<(int)v[i].size();j+=3){
+        for(int j=0;j<(int)v[i].size();j++){
             for(int k=0;k<H_PARAMS1;k++){
                 if((int)v[i].size()<=j+2){break;}
                 int p1 = v[i][j];
@@ -232,7 +232,7 @@ int NNUE_init_score(F_T board[ROW][COL]) {
     int input[H_PARAMS1] = {0};
 
     for(int i=0;i<10;i++){
-        for(int j=0;j<(int)v[i].size();j+=3){
+        for(int j=0;j<(int)v[i].size();j++){
             for(int k=0;k<H_PARAMS1;k++){
                 if((int)v[i].size()<=j+2){break;}
                 int p1 = v[i][j];
@@ -884,3 +884,4 @@ int main() {
     // --- 最終テスト ---
     return 0; // 学習だけならここで終了でOK
 }
+
