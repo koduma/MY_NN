@@ -640,8 +640,8 @@ int main() {
     }
     }
     bool ln=loadNNUE(net, net_f, delta, "all_nnue.txt");
-    if(!ln) printf("New Training Session (Weights initialized to random/zero)\n");
-    else printf("Loaded existing weights.\n");
+    if(!ln){printf("New Training Session (Weights initialized to random/zero)\n");}
+    else{printf("Loaded existing weights.\n");}
 
     int i,j,k;
 
@@ -744,3 +744,4 @@ int main() {
     j = getchar();
 	return 0;
 }
+
