@@ -45,14 +45,8 @@ using namespace std;
 #define PROBLEM 1000     // テスト用問題数
 #define H_PARAMS1 128
 #define H_PARAMS2 16
-#define TEST 10000         // 学習の反復回数
+#define TEST 200         // 学習の反復回数
 #define BONUS 10
-
-
-#define DY_OFFSET (ROW) 
-#define DX_OFFSET (COL) 
-#define X_RANGE (2 * COL + 1)
-#define REL_SIZE 256
 
 #define NODE_SIZE MAX(500,4*BEAM_WIDTH)
 #define DIR 4
@@ -88,7 +82,7 @@ ll zoblish_field[ROW][COL][DROP+1];
 
 // ネットワーク構造体 (整数版: 推論用)
 struct NNUE {
-    int weights1[REL_SIZE][REL_SIZE][H_PARAMS1]; // サイズ拡張
+    int weights1[ROW*COL][ROW*COL][ROW*COL][H_PARAMS1]; // サイズ拡張
     int weights2[H_PARAMS1][H_PARAMS2];
     int biases2[H_PARAMS2];
     int weights3[H_PARAMS2];
@@ -97,7 +91,7 @@ struct NNUE {
 
 // ネットワーク構造体 (実数版: 学習用)
 struct NNUE_F {
-    double weights1[REL_SIZE][REL_SIZE][H_PARAMS1]; // サイズ拡張
+    double weights1[ROW*COL][ROW*COL][ROW*COL][H_PARAMS1]; // サイズ拡張
     double weights2[H_PARAMS1][H_PARAMS2];
     double biases2[H_PARAMS2];
     double weights3[H_PARAMS2];
@@ -106,7 +100,7 @@ struct NNUE_F {
 
 // 摂動構造体 (微小変化用)
 struct NNUE_Delta {
-    sc weights1[REL_SIZE][REL_SIZE][H_PARAMS1]; // サイズ拡張
+    sc weights1[ROW*COL][ROW*COL][ROW*COL][H_PARAMS1]; // サイズ拡張
     sc weights2[H_PARAMS1][H_PARAMS2];
     sc biases2[H_PARAMS2];
     sc weights3[H_PARAMS2];
@@ -154,20 +148,26 @@ double part1 = 0, part2 = 0, part3 = 0, part4 = 0, MAXCOMBO = 0;
 
 // --- 重み同期関数 ---
 void sync_weights() {
-    for (int i = 0; i < REL_SIZE; i++)
-        for (int j = 0; j < REL_SIZE; j++)
-            for (int k = 0; k < H_PARAMS1; k++)
-                net.weights1[i][j][k] = (int)round(net_f.weights1[i][j][k]);
+for (int i = 0; i < ROW*COL; i++){
+for (int j = 0; j < ROW*COL; j++){
+for (int m = 0; m < ROW*COL; m++){
+for (int k = 0; k < H_PARAMS1; k++){
+net.weights1[i][j][m][k] = (int)round(net_f.weights1[i][j][m][k]);
+}
+}
+}
+}
 
-    for (int i = 0; i < H_PARAMS1; i++)
-        for (int j = 0; j < H_PARAMS2; j++)
-            net.weights2[i][j] = (int)round(net_f.weights2[i][j]);
-
-    for (int i = 0; i < H_PARAMS2; i++) {
-        net.biases2[i] = (int)round(net_f.biases2[i]);
-        net.weights3[i] = (int)round(net_f.weights3[i]);
-    }
-    net.bias3 = (int)round(net_f.bias3);
+for (int i = 0; i < H_PARAMS1; i++){
+for (int j = 0; j < H_PARAMS2; j++){
+net.weights2[i][j] = (int)round(net_f.weights2[i][j]);
+}
+}
+for (int i = 0; i < H_PARAMS2; i++) {
+net.biases2[i] = (int)round(net_f.biases2[i]);
+net.weights3[i] = (int)round(net_f.weights3[i]);
+}
+net.bias3 = (int)round(net_f.bias3);
 }
 int NNUE_init_score(F_T board[ROW][COL]) {
     vector<int>v[10];
@@ -185,21 +185,7 @@ int NNUE_init_score(F_T board[ROW][COL]) {
                 int p1 = v[i][j];
                 int p2 = v[i][j+1];
                 int p3 = v[i][j+2];
-                int r1 = p1 / COL;
-                int c_1 = p1 % COL;
-                int r2 = p2 / COL;
-                int c_2 = p2 % COL;
-                int r3 = p3 / COL;
-                int c_3 = p3 % COL;
-                int dy1 = r2 - r1;
-                int dx1 = c_2 - c_1;
-                int dy2 = r3 - r1;
-                int dx2 = c_3 - c_1;
-                int idx1 = (dy1 + DY_OFFSET) * X_RANGE + (dx1 + DX_OFFSET);
-                int idx2 = (dy2 + DY_OFFSET) * X_RANGE + (dx2 + DX_OFFSET);
-                if(idx1 >= 0 && idx1 < REL_SIZE && idx2 >= 0 && idx2 < REL_SIZE) {
-                    input[k] += net.weights1[idx1][idx2][k];
-                }
+                input[k] += net.weights1[p1][p2][p3][k];
             }
         }
     }
@@ -358,6 +344,7 @@ Action BEAM_SEARCH(F_T f_field[ROW][COL]) {
                 maxValue=(int)temp.combo;
                 bestAction.first_te = temp.first_te;
                 memcpy(bestAction.moving, temp.movei, sizeof(temp.movei));
+                if(maxValue>=stop){return bestAction;}
             }
         }
         if(push_node==0) break;
@@ -391,7 +378,7 @@ double run_batch(int batch_size) {
        
         if (tmp.maxcombo > 0) {
             double combo_weight = 1.0;
-            double length_penalty = 0.001;
+            double length_penalty = 0;
             double combo_score = (double)combo / (double)tmp.maxcombo;
             double length_score = (double)path_length * length_penalty;
             total_score += (combo_score - length_score);
@@ -403,7 +390,7 @@ double run_batch(int batch_size) {
 
 // --- SPSA学習関数 ---
 void SA(int type) {
-    printf("--- Start SA Iteration %d ---\n", type);
+    printf("--- Start SA Iteration %d/%d ---\n", type+1,TEST);
    
     double learning_rate = 1.0;
     double c = 1.0;              
@@ -412,32 +399,45 @@ void SA(int type) {
     static bool initialized = false;
     if (!initialized) {
         printf("Initializing Net_F from Net...\n");
-        for (int i = 0; i < REL_SIZE; i++)
-            for (int j = 0; j < REL_SIZE; j++)
-                for (int k = 0; k < H_PARAMS1; k++)
-                    net_f.weights1[i][j][k] = (double)net.weights1[i][j][k];
+        for (int i = 0; i < ROW*COL; i++){
+        for (int j = 0; j < ROW*COL; j++){
+        for (int m = 0; m < ROW*COL; m++){
+        for (int k = 0; k < H_PARAMS1; k++){
+        net_f.weights1[i][j][m][k] = (double)net.weights1[i][j][m][k];
+        }
+        }
+        }
+        }
 
-        for (int i = 0; i < H_PARAMS1; i++)
-            for (int j = 0; j < H_PARAMS2; j++)
-                net_f.weights2[i][j] = (double)net.weights2[i][j];
+        for (int i = 0; i < H_PARAMS1; i++){
+        for (int j = 0; j < H_PARAMS2; j++){
+        net_f.weights2[i][j] = (double)net.weights2[i][j];
+        }
+        }
 
         for (int i = 0; i < H_PARAMS2; i++) {
-            net_f.biases2[i] = (double)net.biases2[i];
-            net_f.weights3[i] = (double)net.weights3[i];
+        net_f.biases2[i] = (double)net.biases2[i];
+        net_f.weights3[i] = (double)net.weights3[i];
         }
         net_f.bias3 = (double)net.bias3;
         initialized = true;
     }
 
     // 1. Delta生成
-    for (int i = 0; i < REL_SIZE; i++)
-        for (int j = 0; j < REL_SIZE; j++)
-            for (int k = 0; k < H_PARAMS1; k++)
-                delta.weights1[i][j][k] = (rnd(0, 1) == 0) ? 1 : -1;
-
-    for (int i = 0; i < H_PARAMS1; i++)
-        for (int j = 0; j < H_PARAMS2; j++)
-            delta.weights2[i][j] = (rnd(0, 1) == 0) ? 1 : -1;
+    for (int i = 0; i < ROW*COL; i++){
+    for (int j = 0; j < ROW*COL; j++){
+    for (int m = 0; m < ROW*COL; m++){
+    for (int k = 0; k < H_PARAMS1; k++){
+    delta.weights1[i][j][m][k] = (rnd(0, 1) == 0) ? 1 : -1;
+    }
+    }
+    }
+    }
+    for (int i = 0; i < H_PARAMS1; i++){
+    for (int j = 0; j < H_PARAMS2; j++){
+    delta.weights2[i][j] = (rnd(0, 1) == 0) ? 1 : -1;
+    }
+    }
 
     for (int i = 0; i < H_PARAMS2; i++) {
         delta.biases2[i] = (rnd(0, 1) == 0) ? 1 : -1;
@@ -447,15 +447,22 @@ void SA(int type) {
 
     // 2. Plus評価
     #define APPLY_DELTA(VAL, D_VAL, SIGN) ((int)round(VAL + (SIGN * c * D_VAL)))
+
+    for (int i = 0; i < ROW*COL; i++){
+    for (int j = 0; j < ROW*COL; j++){
+    for (int m = 0; m < ROW*COL; m++){
+    for (int k = 0; k < H_PARAMS1; k++){
+    net.weights1[i][j][m][k] = APPLY_DELTA(net_f.weights1[i][j][m][k], delta.weights1[i][j][m][k], 1);
+    }
+    }
+    }
+    }
    
-    for (int i = 0; i < REL_SIZE; i++)
-        for (int j = 0; j < REL_SIZE; j++)
-            for (int k = 0; k < H_PARAMS1; k++)
-                net.weights1[i][j][k] = APPLY_DELTA(net_f.weights1[i][j][k], delta.weights1[i][j][k], 1);
-   
-    for (int i = 0; i < H_PARAMS1; i++)
-        for (int j = 0; j < H_PARAMS2; j++)
-            net.weights2[i][j] = APPLY_DELTA(net_f.weights2[i][j], delta.weights2[i][j], 1);
+    for (int i = 0; i < H_PARAMS1; i++){
+    for (int j = 0; j < H_PARAMS2; j++){
+    net.weights2[i][j] = APPLY_DELTA(net_f.weights2[i][j], delta.weights2[i][j], 1);
+    }
+    }
     for (int i = 0; i < H_PARAMS2; i++) {
         net.biases2[i] = APPLY_DELTA(net_f.biases2[i], delta.biases2[i], 1);
         net.weights3[i] = APPLY_DELTA(net_f.weights3[i], delta.weights3[i], 1);
@@ -466,17 +473,24 @@ void SA(int type) {
     double score_plus = run_batch(batch_size);
 
     // 3. Minus評価
-    for (int i = 0; i < REL_SIZE; i++)
-        for (int j = 0; j < REL_SIZE; j++)
-            for (int k = 0; k < H_PARAMS1; k++)
-                net.weights1[i][j][k] = APPLY_DELTA(net_f.weights1[i][j][k], delta.weights1[i][j][k], -1);
+    for (int i = 0; i < ROW*COL; i++){
+    for (int j = 0; j < ROW*COL; j++){
+    for (int m = 0; m < ROW*COL; m++){
+    for (int k = 0; k < H_PARAMS1; k++){
+    net.weights1[i][j][m][k] = APPLY_DELTA(net_f.weights1[i][j][m][k], delta.weights1[i][j][m][k], -1);
+    }
+    }
+    }
+    }
    
-    for (int i = 0; i < H_PARAMS1; i++)
-        for (int j = 0; j < H_PARAMS2; j++)
-            net.weights2[i][j] = APPLY_DELTA(net_f.weights2[i][j], delta.weights2[i][j], -1);
+    for (int i = 0; i < H_PARAMS1; i++){
+    for (int j = 0; j < H_PARAMS2; j++){
+    net.weights2[i][j] = APPLY_DELTA(net_f.weights2[i][j], delta.weights2[i][j], -1);
+    }
+    }
     for (int i = 0; i < H_PARAMS2; i++) {
-        net.biases2[i] = APPLY_DELTA(net_f.biases2[i], delta.biases2[i], -1);
-        net.weights3[i] = APPLY_DELTA(net_f.weights3[i], delta.weights3[i], -1);
+    net.biases2[i] = APPLY_DELTA(net_f.biases2[i], delta.biases2[i], -1);
+    net.weights3[i] = APPLY_DELTA(net_f.weights3[i], delta.weights3[i], -1);
     }
     net.bias3 = APPLY_DELTA(net_f.bias3, delta.bias3, -1);
 
@@ -487,18 +501,25 @@ void SA(int type) {
     double grad_estimate = (score_plus - score_minus) / (2.0 * c);
     double step = learning_rate * grad_estimate;
 
-    for (int i = 0; i < REL_SIZE; i++)
-        for (int j = 0; j < REL_SIZE; j++)
-            for (int k = 0; k < H_PARAMS1; k++)
-                net_f.weights1[i][j][k] += step * delta.weights1[i][j][k];
+    for (int i = 0; i < ROW*COL; i++){
+    for (int j = 0; j < ROW*COL; j++){
+    for (int m = 0; m < ROW*COL; m++){
+    for (int k = 0; k < H_PARAMS1; k++){
+    net_f.weights1[i][j][m][k] += step * delta.weights1[i][j][m][k];
+    }
+    }
+    }
+    }
 
-    for (int i = 0; i < H_PARAMS1; i++)
-        for (int j = 0; j < H_PARAMS2; j++)
-            net_f.weights2[i][j] += step * delta.weights2[i][j];
+    for (int i = 0; i < H_PARAMS1; i++){
+    for (int j = 0; j < H_PARAMS2; j++){
+    net_f.weights2[i][j] += step * delta.weights2[i][j];
+    }
+    }
 
     for (int i = 0; i < H_PARAMS2; i++) {
-        net_f.biases2[i] += step * delta.biases2[i];
-        net_f.weights3[i] += step * delta.weights3[i];
+    net_f.biases2[i] += step * delta.biases2[i];
+    net_f.weights3[i] += step * delta.weights3[i];
     }
     net_f.bias3 += step * delta.bias3;
 
@@ -514,57 +535,87 @@ void SA(int type) {
 // --- 保存関数 ---
 bool saveNNUE(const NNUE& net, const NNUE_F& net_f, const NNUE_Delta& delta, const string& filename) {
     ofstream ofs(filename);
-    if (!ofs) return false;
+    if (!ofs) {return false;}
 
     ofs << "===NET===\n";
-    for (int i = 0; i < REL_SIZE; ++i) {
-        for (int j = 0; j < REL_SIZE; ++j) {
-            for (int k = 0; k < H_PARAMS1; ++k) ofs << net.weights1[i][j][k] << ' ';
-            ofs << '\n';
-        }
+    for (int i = 0; i < ROW*COL; i++){
+    for (int j = 0; j < ROW*COL; j++){
+    for (int m = 0; m < ROW*COL; m++){
+    for (int k = 0; k < H_PARAMS1; k++){
+    ofs << net.weights1[i][j][m][k] << ' ';
+    }
+    ofs << '\n';
+    }
+    }
     }
     for (int i = 0; i < H_PARAMS1; ++i) {
-        for (int j = 0; j < H_PARAMS2; ++j) ofs << net.weights2[i][j] << ' ';
-        ofs << '\n';
+    for (int j = 0; j < H_PARAMS2; ++j){
+    ofs << net.weights2[i][j] << ' ';
     }
-    for (int i = 0; i < H_PARAMS2; ++i) ofs << net.biases2[i] << ' ';
     ofs << '\n';
-    for (int i = 0; i < H_PARAMS2; ++i) ofs << net.weights3[i] << ' ';
+    }
+    for (int i = 0; i < H_PARAMS2; ++i){
+    ofs << net.biases2[i] << ' ';
+    }
+    ofs << '\n';
+    for (int i = 0; i < H_PARAMS2; ++i){
+    ofs << net.weights3[i] << ' ';
+    }
     ofs << '\n';
     ofs << net.bias3 << '\n';
 
     ofs << "===NET_F===\n";
     ofs.precision(10);
-    for (int i = 0; i < REL_SIZE; ++i) {
-        for (int j = 0; j < REL_SIZE; ++j) {
-            for (int k = 0; k < H_PARAMS1; ++k) ofs << net_f.weights1[i][j][k] << ' ';
-            ofs << '\n';
-        }
+    for (int i = 0; i < ROW*COL; i++){
+    for (int j = 0; j < ROW*COL; j++){
+    for (int m = 0; m < ROW*COL; m++){
+    for (int k = 0; k < H_PARAMS1; k++){
+    ofs << net_f.weights1[i][j][m][k] << ' ';
+    }
+    ofs << '\n';
+    }
+    }
     }
     for (int i = 0; i < H_PARAMS1; ++i) {
-        for (int j = 0; j < H_PARAMS2; ++j) ofs << net_f.weights2[i][j] << ' ';
-        ofs << '\n';
+    for (int j = 0; j < H_PARAMS2; ++j) {
+    ofs << net_f.weights2[i][j] << ' ';
     }
-    for (int i = 0; i < H_PARAMS2; ++i) ofs << net_f.biases2[i] << ' ';
     ofs << '\n';
-    for (int i = 0; i < H_PARAMS2; ++i) ofs << net_f.weights3[i] << ' ';
+    }
+    for (int i = 0; i < H_PARAMS2; ++i){
+    ofs << net_f.biases2[i] << ' ';
+    }
+    ofs << '\n';
+    for (int i = 0; i < H_PARAMS2; ++i){
+    ofs << net_f.weights3[i] << ' ';
+    }
     ofs << '\n';
     ofs << net_f.bias3 << '\n';
 
     ofs << "===DELTA===\n";
-    for (int i = 0; i < REL_SIZE; ++i) {
-        for (int j = 0; j < REL_SIZE; ++j) {
-            for (int k = 0; k < H_PARAMS1; ++k) ofs << (int)delta.weights1[i][j][k] << ' ';
-            ofs << '\n';
-        }
+    for (int i = 0; i < ROW*COL; i++){
+    for (int j = 0; j < ROW*COL; j++){
+    for (int m = 0; m < ROW*COL; m++){
+    for (int k = 0; k < H_PARAMS1; k++){
+    ofs << (int)delta.weights1[i][j][m][k] << ' ';
+    }
+    ofs << '\n';
+    }
+    }
     }
     for (int i = 0; i < H_PARAMS1; ++i) {
-        for (int j = 0; j < H_PARAMS2; ++j) ofs << (int)delta.weights2[i][j] << ' ';
-        ofs << '\n';
+    for (int j = 0; j < H_PARAMS2; ++j){
+    ofs << (int)delta.weights2[i][j] << ' ';
     }
-    for (int i = 0; i < H_PARAMS2; ++i) ofs << (int)delta.biases2[i] << ' ';
     ofs << '\n';
-    for (int i = 0; i < H_PARAMS2; ++i) ofs << (int)delta.weights3[i] << ' ';
+    }
+    for (int i = 0; i < H_PARAMS2; ++i){
+    ofs << (int)delta.biases2[i] << ' ';
+    }
+    ofs << '\n';
+    for (int i = 0; i < H_PARAMS2; ++i){
+    ofs << (int)delta.weights3[i] << ' ';
+    }
     ofs << '\n';
     ofs << (int)delta.bias3 << '\n';
 
@@ -574,61 +625,86 @@ bool saveNNUE(const NNUE& net, const NNUE_F& net_f, const NNUE_Delta& delta, con
 // --- 読み込み関数 ---
 bool loadNNUE(NNUE& net, NNUE_F& net_f, NNUE_Delta& delta, const std::string& filename) {
     std::ifstream ifs(filename.c_str());
-    if(!ifs) return false;
+    if(!ifs){return false;}
 
     std::string marker;
     int temp_int;
 
-    if (!(ifs >> marker) || marker != "===NET===") return false;
-    for (int i = 0; i < REL_SIZE; ++i) {
-        for (int j = 0; j < REL_SIZE; ++j) {
-            for (int k = 0; k < H_PARAMS1; ++k) if (!(ifs >> net.weights1[i][j][k])) return false;
-        }
+    if (!(ifs >> marker) || marker != "===NET==="){return false;}
+    for (int i = 0; i < ROW*COL; ++i) {
+    for (int j = 0; j < ROW*COL; ++j) {
+    for (int m = 0; m < ROW*COL; ++m) {
+    for (int k = 0; k < H_PARAMS1; ++k){
+    if (!(ifs >> net.weights1[i][j][m][k])){return false;}
     }
-    for (int i = 0; i < H_PARAMS1; ++i) {
-        for (int j = 0; j < H_PARAMS2; ++j) if (!(ifs >> net.weights2[i][j])) return false;
     }
-    for (int i = 0; i < H_PARAMS2; ++i) if (!(ifs >> net.biases2[i])) return false;
-    for (int i = 0; i < H_PARAMS2; ++i) if (!(ifs >> net.weights3[i])) return false;
-    if (!(ifs >> net.bias3)) return false;
+    }
+    }
+    for (int i = 0; i < H_PARAMS1; ++i){
+    for (int j = 0; j < H_PARAMS2; ++j){
+    if (!(ifs >> net.weights2[i][j])){return false;}
+    }
+    }
+    for (int i = 0; i < H_PARAMS2; ++i){
+    if (!(ifs >> net.biases2[i])) {return false;}
+    }
+    for (int i = 0; i < H_PARAMS2; ++i){
+    if (!(ifs >> net.weights3[i])){return false;}
+    }
+    if (!(ifs >> net.bias3)){return false;}
 
-    if (!(ifs >> marker) || marker != "===NET_F===") return false;
-    for (int i = 0; i < REL_SIZE; ++i) {
-        for (int j = 0; j < REL_SIZE; ++j) {
-            for (int k = 0; k < H_PARAMS1; ++k) if (!(ifs >> net_f.weights1[i][j][k])) return false;
-        }
+    if (!(ifs >> marker) || marker != "===NET_F==="){return false;}
+    for (int i = 0; i < ROW*COL; ++i) {
+    for (int j = 0; j < ROW*COL; ++j) {
+    for (int m = 0; m < ROW*COL; ++m) {
+    for (int k = 0; k < H_PARAMS1; ++k){
+    if (!(ifs >> net_f.weights1[i][j][m][k])){return false;}
     }
+    }
+    }
+    }
+    
     for (int i = 0; i < H_PARAMS1; ++i) {
-        for (int j = 0; j < H_PARAMS2; ++j) if (!(ifs >> net_f.weights2[i][j])) return false;
+    for (int j = 0; j < H_PARAMS2; ++j){
+    if (!(ifs >> net_f.weights2[i][j])){return false;}
     }
-    for (int i = 0; i < H_PARAMS2; ++i) if (!(ifs >> net_f.biases2[i])) return false;
-    for (int i = 0; i < H_PARAMS2; ++i) if (!(ifs >> net_f.weights3[i])) return false;
-    if (!(ifs >> net_f.bias3)) return false;
+    }
+    for (int i = 0; i < H_PARAMS2; ++i){
+    if (!(ifs >> net_f.biases2[i])){return false;}
+    }
 
-    if (!(ifs >> marker) || marker != "===DELTA===") return false;
-    for (int i = 0; i < REL_SIZE; ++i) {
-        for (int j = 0; j < REL_SIZE; ++j) {
-            for (int k = 0; k < H_PARAMS1; ++k) {
-                if (!(ifs >> temp_int)) return false;
-                delta.weights1[i][j][k] = (sc)temp_int;
-            }
-        }
+    for (int i = 0; i < H_PARAMS2; ++i){
+    if (!(ifs >> net_f.weights3[i])){return false;}
+    }
+    if (!(ifs >> net_f.bias3)){return false;}
+
+    if (!(ifs >> marker) || marker != "===DELTA==="){return false;}
+
+    for (int i = 0; i < ROW*COL; ++i) {
+    for (int j = 0; j < ROW*COL; ++j) {
+    for (int m = 0; m < ROW*COL; ++m) {
+    for (int k = 0; k < H_PARAMS1; ++k){
+    if (!(ifs >> temp_int)){return false;}
+    delta.weights1[i][j][m][k]=(sc)temp_int;
+    }
+    }
+    }
     }
     for (int i = 0; i < H_PARAMS1; ++i) {
-        for (int j = 0; j < H_PARAMS2; ++j) {
-            if (!(ifs >> temp_int)) return false;
-            delta.weights2[i][j] = (sc)temp_int;
-        }
+    for (int j = 0; j < H_PARAMS2; ++j) {
+    if (!(ifs >> temp_int)){return false;}
+    delta.weights2[i][j] = (sc)temp_int;
+    }
     }
     for (int i = 0; i < H_PARAMS2; ++i) {
-        if (!(ifs >> temp_int)) return false;
-        delta.biases2[i] = (sc)temp_int;
+    if (!(ifs >> temp_int)){return false;}
+    delta.biases2[i] = (sc)temp_int;
     }
     for (int i = 0; i < H_PARAMS2; ++i) {
-        if (!(ifs >> temp_int)) return false;
-        delta.weights3[i] = (sc)temp_int;
+    if (!(ifs >> temp_int)){return false;}
+    delta.weights3[i] = (sc)temp_int;
     }
-    if (!(ifs >> temp_int)) return false;
+    if (!(ifs >> temp_int)){return false;}
     delta.bias3 = (sc)temp_int;
 
     return true;
@@ -785,43 +861,54 @@ ll xor128() {
 }
 
 int main() {
-    for(int i=0;i<ROW;++i) for(int j=0;j<COL;++j) for(int k=0;k<=DROP;k++) zoblish_field[i][j][k]=xor128();
+
+    for(int i=0;i<ROW;++i){
+    for(int j=0;j<COL;++j){
+    for(int k=0;k<=DROP;k++){
+    zoblish_field[i][j][k]=xor128();
+    }
+    }
+    }
 
     bool ln=loadNNUE(net, net_f, delta, "all_nnue.txt");
-    if(!ln) printf("New Training Session (Weights initialized to random/zero)\n");
-    else printf("Loaded existing weights.\n");
+    if(!ln){printf("New Training Session (Weights initialized to random/zero)\n");}
+    else{printf("Loaded existing weights.\n");}
 
-    bool start_test=false;
+    for(int i=0;i<ROW*COL;i++){
+    for(int j=0;j<ROW*COL;j++){
+    for(int k=0;k<ROW*COL;k++){
+    for(int m=0;m<H_PARAMS1;m++){
+    net.weights1[i][j][k][m]=0;
+    net_f.weights1[i][j][k][m]=0.0;
+    }
+    }
+    }
+    }
+
+    bool start_test=true;
     if(start_test){
-        ifstream myf ("data.txt");
-        if(myf.is_open()) {
-            printf("Loading teacher data...\n");
-            string ls;
-            while(getline(myf,ls)){
-                string parent="", child="";
-                bool slash=false;
-                for(int i=0;i<(int)ls.size();i++){
-                    if(ls[i]=='/'){slash=true;continue;}
-                    if(slash) child+=ls[i]; else parent+=ls[i];
-                }
-                int counter=0; string xz[3]={"","",""};
-                for(int i=0;i<(int)parent.size();i++){
-                    if(parent[i]==','){counter++;continue;}
-                    xz[counter]+=parent[i];
-                }
-                // data.txtの読み込み時もオフセットを考慮
-                for(int k=0;k<H_PARAMS1;k++){
-                    int d1_idx = stoi(xz[1]);
-                    int d2_idx = stoi(xz[2]);
-                    if (d1_idx >= 0 && d1_idx < REL_SIZE && d2_idx >= 0 && d2_idx < REL_SIZE) {
-                        net.weights1[d1_idx][d2_idx][k]=stoi(child);
-                        net_f.weights1[d1_idx][d2_idx][k]=(double)stoi(child); // net_fにも反映
-                    }
-                }
+        ifstream myf ("super_data.txt");
+        string ls;
+        while(getline(myf,ls)){
+            string parent="", child="";
+            bool slash=false;
+            for(int i=0;i<(int)ls.size();i++){
+                if(ls[i]=='/'){slash=true;continue;}
+                if(slash){child+=ls[i];} else{parent+=ls[i];}
             }
-            myf.close();
-            sync_weights(); // int版へ同期
+            int counter=0;
+            string xz[4]={"","","",""};
+            for(int i=0;i<(int)parent.size();i++){
+                if(parent[i]==','){counter++;continue;}
+                xz[counter]+=parent[i];
+            }
+            for(int k=0;k<H_PARAMS1;k++){
+            net.weights1[stoi(xz[1])][stoi(xz[2])][stoi(xz[3])][k]+=stoi(child);
+            net_f.weights1[stoi(xz[1])][stoi(xz[2])][stoi(xz[3])][k]+=(double)stoi(child);
+            }
         }
+        myf.close();
+        sync_weights();
     }
 
     if(change_weight){
