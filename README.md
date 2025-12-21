@@ -1,2 +1,5 @@
 ## ニューラルネットワークです。
-## g++ -O2 -std=c++11 -fopenmp PPP.cpp loguru.cpp -o PPP -lpthread -ldl
+## Linux
+### g++ -O2 -std=c++11 -fopenmp PPP.cpp loguru.cpp -o PPP -lpthread -ldl
+## Windows11
+### g++ -O2 -std=c++11 -fopenmp -lpthread PPP.cpp loguru.cpp -o PPP
