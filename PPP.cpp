@@ -1,11 +1,19 @@
 /*
-実行コマンド:
-g++ -O2 -std=c++11 -fopenmp PPP.cpp -o PPP
+
+Linux:
+
+g++ -O2 -std=c++11 -fopenmp PPP.cpp loguru.cpp -o PPP -lpthread -ldl
+
+Windows11:
+
+g++ -O2 -std=c++11 -fopenmp -lpthread PPP.cpp loguru.cpp -o PPP
+
 ./PPP
 */
 #pragma warning(disable:4710)
 #pragma warning(disable:4711)
 #pragma warning(disable:4820)
+#include <tuple>
 #include <vector>
 #include <cfloat>
 #include <cstdio>
@@ -42,7 +50,7 @@ using namespace std;
 #define TRN 150
 #define MAX_TURN 150
 #define BEAM_WIDTH 10000
-#define PROBLEM 1000
+#define PROBLEM 100
 #define BONUS 10
 
 #define NODE_SIZE MAX(500,4*BEAM_WIDTH)
@@ -235,14 +243,14 @@ Action BEAM_SEARCH(F_T f_field[ROW][COL]) {
         }
 
         dque.clear();
-        vector<pair<int,int> >vec;
+        vector<tuple<int, int, int> >vec;
         int ks2 = 0;
         for (int j = 0; j < 4 * ks; j++) {
             if (fff[j].combo != -1) {
                 if(fff[j].score>fff[j].prev_score){fff[j].improving=fff[j].improving+1;}
                 fff[j].prev_score=fff[j].score;
                 int sc=fff[j].score+(BONUS*fff[j].improving)+(fff[j].nowR*3);
-                vec.push_back(make_pair(-sc,j));    
+                vec.emplace_back(-fff[j].combo, -sc, j);    
                 ks2++;
             }
         }
@@ -250,7 +258,7 @@ Action BEAM_SEARCH(F_T f_field[ROW][COL]) {
         int push_node=0;
         for (int j = 0; push_node < BEAM_WIDTH; j++) {
             if((int)vec.size()<=j){break;}
-            int v=vec[j].second;
+            int v=get<2>(vec[j]);
             node temp = fff[v];
            
             // 理論値コンボチェックは省略(NNUE学習中は評価値のみで走る)
@@ -481,7 +489,7 @@ int main() {
 
     bool start_test=true;
     if(start_test){
-        ifstream myf ("super_data.txt");
+        ifstream myf ("data.txt");
         string ls;
         while(getline(myf,ls)){
             string parent="", child="";
@@ -583,4 +591,3 @@ int main() {
     j = getchar();
 	return 0;
 }
-
