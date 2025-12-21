@@ -29,6 +29,7 @@ g++ -O2 -std=c++11 -fopenmp make_data.cpp -o make_data
 #include <fstream>
 #include <functional>
 #include <unordered_map>
+#include "hash_map.hpp"
 #ifdef _OPENMP
 #include <omp.h>
 #endif
@@ -260,7 +261,7 @@ Action BEAM_SEARCH(F_T f_field[ROW][COL]) {
     int maxValue = 0;
     bestAction.maxcombo = stop;
 
-    unordered_map<ll, bool> checkNodeList[ROW*COL];
+    emilib::HashMap<ll, bool> checkNodeList[ROW*COL];
 
     // ビーム探索ループ
     for (int i = 0; i < MAX_TURN; i++) {
