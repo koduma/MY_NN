@@ -76,6 +76,7 @@ int sum_e(F_T field[ROW][COL]);
 int sum_evaluate(F_T field[ROW][COL]);
 int sum_e2(F_T field[ROW][COL], sc* combo, ll* hash,int p_maxcombo[DROP+1]);
 void operation(F_T field[ROW][COL], T_T first_te,ll route[(TRN/21)+1]);
+int evaluate(F_T field[ROW][COL], int flag);
 ll xor128();
 
 // --- グローバル変数 ---
@@ -294,10 +295,7 @@ Action BEAM_SEARCH(F_T f_field[ROW][COL]) {
                         cand.movei[i/21] |= (((ll)(j+1))<<((3*i)%63));
                         //cand.score += NNUE_score(field,c1,c2); // NNUE評価
                         cand.score = NNUE_init_score(field);
-                        sc cmb;
-                        ll ha;
-                        int di=sum_e2(field,&cmb,&ha,p_maxcombo);
-                        cand.combo = cmb; // 仮
+                        cand.combo = (sc)evaluate(field, EVAL_FALL | EVAL_COMBO);
                         cand.prev = j;
                         fff[(4 * k) + j] = cand;
                     } else {
@@ -920,3 +918,4 @@ int main() {
     // --- 最終テスト ---
     return 0; // 学習だけならここで終了でOK
 }
+
