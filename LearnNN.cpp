@@ -28,6 +28,7 @@ g++ -O2 -std=c++11 -fopenmp LearnNN.cpp -o LearnNN
 #include <chrono>
 #include <fstream>
 #include <functional>
+#include "hash_map.hpp"
 #include <unordered_map>
 #ifdef _OPENMP
 #include <omp.h>
@@ -259,7 +260,7 @@ Action BEAM_SEARCH(F_T f_field[ROW][COL]) {
     int maxValue = 0;
     bestAction.maxcombo = stop;
 
-    unordered_map<ll, bool> checkNodeList[ROW*COL];
+    emilib::HashMap<ll, bool> checkNodeList[ROW*COL];
 
     // ビーム探索ループ
     for (int i = 0; i < MAX_TURN; i++) {
