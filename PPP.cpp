@@ -73,6 +73,7 @@ int sum_evaluate(F_T field[ROW][COL]);
 int sum_e2(F_T field[ROW][COL], sc* combo, ll* hash,int p_maxcombo[DROP+1]);
 void operation(F_T field[ROW][COL], T_T first_te,ll route[(TRN/21)+1]);
 ll xor128();
+int evaluate(F_T field[ROW][COL], int flag);
 
 // --- グローバル変数 ---
 ll zoblish_field[ROW][COL][DROP+1];
@@ -582,3 +583,4 @@ int main() {
     j = getchar();
 	return 0;
 }
+
