@@ -29,6 +29,7 @@ g++ -O2 -std=c++11 -fopenmp PPP.cpp -o PPP
 #include <fstream>
 #include <functional>
 #include <unordered_map>
+#include "hash_map.hpp"
 #ifdef _OPENMP
 #include <omp.h>
 #endif
@@ -184,7 +185,7 @@ Action BEAM_SEARCH(F_T f_field[ROW][COL]) {
     int maxValue = 0;
     bestAction.maxcombo = stop;
 
-    unordered_map<ll, bool> checkNodeList[ROW*COL];
+    emilib::HashMap<ll, bool> checkNodeList[ROW*COL];
 
     // ビーム探索ループ
     for (int i = 0; i < MAX_TURN; i++) {
@@ -218,10 +219,7 @@ Action BEAM_SEARCH(F_T f_field[ROW][COL]) {
                         cand.movei[i/21] |= (((ll)(j+1))<<((3*i)%63));
                         //cand.score += NNUE_score(field,c1,c2); // NNUE評価
                         cand.score = NNUE_init_score(field);
-                        sc cmb;
-                        ll ha;
-                        int di=sum_e2(field,&cmb,&ha,p_maxcombo);
-                        cand.combo = cmb; // 仮
+                        cand.combo = (sc)evaluate(field, EVAL_FALL | EVAL_COMBO);
                         cand.prev = j;
                         fff[(4 * k) + j] = cand;
                     } else {
