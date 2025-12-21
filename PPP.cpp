@@ -250,7 +250,8 @@ Action BEAM_SEARCH(F_T f_field[ROW][COL]) {
                 if(fff[j].score>fff[j].prev_score){fff[j].improving=fff[j].improving+1;}
                 fff[j].prev_score=fff[j].score;
                 int sc=fff[j].score+(BONUS*fff[j].improving)+(fff[j].nowR*3);
-                vec.emplace_back(-fff[j].combo, -sc, j);    
+				int cb=(int)(-fff[j].combo);
+                vec.emplace_back(cb, -sc, j);    
                 ks2++;
             }
         }
@@ -591,3 +592,4 @@ int main() {
     j = getchar();
 	return 0;
 }
+
